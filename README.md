@@ -4,7 +4,7 @@ A collaborative Planning Poker web application for agile teams to estimate tasks
 
 ## Documentation
 
-- **[Product Spec](drivin-design/.spec.MD)** — Product vision, user stories, and success criteria
+- **[Product Spec](drivin-design/spec.MD)** — Product vision, user stories, and success criteria
 - **[Quickstart](drivin-design/quickstart.MD)** — Stack, versions, and commands
 - **[Tasks](drivin-design/tasks.MD)** — Implementation tasks by phase
 

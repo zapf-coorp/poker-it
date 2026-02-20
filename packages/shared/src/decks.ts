@@ -1,6 +1,6 @@
 /**
  * Deck definitions for Planning Poker.
- * See drivin-design/.spec.MD §5.1 and data-model.MD §3.2.
+ * See drivin-design/spec.MD §5.1 and data-model.MD §3.2.
  */
 
 import { DeckType } from "./types.js";

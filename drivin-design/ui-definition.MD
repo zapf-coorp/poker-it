@@ -1,6 +1,6 @@
 # UI Definition — Planning Poker
 
-This document defines **UI/UX rules**, **themes**, **breakpoints**, **components**, and **screen-by-screen layouts** for the Planning Poker app. It supports `.spec.MD` (product spec), `configuration.MD` (workflow), and `quickstart.MD` (stack). Implementation must be **mobile-first**, then scale to tablet, small desktop, and large desktop, with **finger-friendly** touch on small devices and **mouse/keyboard-friendly** on larger ones. **Light and dark mode** are required.
+This document defines **UI/UX rules**, **themes**, **breakpoints**, **components**, and **screen-by-screen layouts** for the Planning Poker app. It supports `spec.MD` (product spec), `configuration.MD` (workflow), and `quickstart.MD` (stack). Implementation must be **mobile-first**, then scale to tablet, small desktop, and large desktop, with **finger-friendly** touch on small devices and **mouse/keyboard-friendly** on larger ones. **Light and dark mode** are required.
 
 ---
 
@@ -159,7 +159,7 @@ Reusable building blocks; use consistently across screens.
 
 ## 7. Screen Inventory and Layouts
 
-Screens are derived from `.spec.MD` user stories. For each: **purpose**, **who sees it**, **layout**, **key elements**, **states**, **responsive notes**.
+Screens are derived from `spec.MD` user stories. For each: **purpose**, **who sees it**, **layout**, **key elements**, **states**, **responsive notes**.
 
 ---
 
@@ -289,9 +289,9 @@ Screens are derived from `.spec.MD` user stories. For each: **purpose**, **who s
 
 | Document | Purpose |
 |----------|--------|
-| `drivin-design/.spec.MD` | Product and user stories; success criteria. |
+| `drivin-design/spec.MD` | Product and user stories; success criteria. |
 | `drivin-design/configuration.MD` | Workflow and AI rules. |
 | `drivin-design/quickstart.MD` | Stack (React, Expo, shared). |
 | `drivin-design/ui-definition.MD` | This file — UI rules, themes, components, screens. |
 
-When implementing UI, use this document for layout, components, themes, and input behavior; use `.spec.MD` for what the screen must do (success criteria).
+When implementing UI, use this document for layout, components, themes, and input behavior; use `spec.MD` for what the screen must do (success criteria).

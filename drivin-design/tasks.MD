@@ -1,6 +1,6 @@
 # Tasks — Spec-Driven Implementation
 
-This file lists **implementation tasks** derived from the spec-driven workflow (`configuration.MD`), the product spec (`.spec.MD`), the data model (`data-model.MD`), and the stack (`quickstart.MD`). Tasks are grouped by phase; complete **Phase 1 (Architecture)** before starting feature slices.
+This file lists **implementation tasks** derived from the spec-driven workflow (`configuration.MD`), the product spec (`spec.MD`), the data model (`data-model.MD`), and the stack (`quickstart.MD`). Tasks are grouped by phase; complete **Phase 1 (Architecture)** before starting feature slices.
 
 ---
 
@@ -19,7 +19,7 @@ These tasks establish the monorepo, shared package, web app, mobile app, and ser
 | 1.1.1 | Create repo root `package.json` with workspaces | `"workspaces": ["apps/*", "packages/*", "server"]` (or `server` in `apps/server` if preferred). Private root; no main entry. | quickstart.MD §2 |
 | 1.1.2 | Add root scripts for install and workspace targets | Scripts (or docs) so that `npm run dev -w web`, `npm run start -w mobile`, `npm run dev -w server`, `npm run typecheck -w shared` work once packages exist. | quickstart.MD §4 |
 | 1.1.3 | Add `.gitignore` at root | Ignore `node_modules`, `.env*`, build outputs, IDE, OS files, and any local DB files (e.g. `*.sqlite`). | — |
-| 1.1.4 | Add root `README.md` | Short description of the project, link to `drivin-design/.spec.MD` and `drivin-design/quickstart.MD`, and “Quick start” section with install + run commands. | quickstart.MD |
+| 1.1.4 | Add root `README.md` | Short description of the project, link to `drivin-design/spec.MD` and `drivin-design/quickstart.MD`, and “Quick start” section with install + run commands. | quickstart.MD |
 
 ---
 
@@ -30,7 +30,7 @@ These tasks establish the monorepo, shared package, web app, mobile app, and ser
 | 1.2.1 | Create `packages/shared` with `package.json` | Name: `"shared"`. TypeScript; `main`/`types` (or `exports`) point to built output; no React/Node-specific deps in shared. | quickstart.MD §1, §5 |
 | 1.2.2 | Add TypeScript to shared | `tsconfig.json` with strict mode; output to `dist/` (or `build/`); `src/` as source. Script: `build` (tsc), `typecheck` (tsc --noEmit). | quickstart.MD |
 | 1.2.3 | Define types from data model | Export TypeScript types/interfaces for: `Room`, `Participant`, `Item`, `Round`, `Vote`, `Session`; enums: `RoomState`, `DeckType`, `ParticipantRole`, `RoundState`. Match field names and optionality in `data-model.MD` §2 and §3. | data-model.MD |
-| 1.2.4 | Add deck constants | Export deck definitions (e.g. FIBONACCI, LINEAR, TSHIRT) with `deckType` and `deckValues` arrays as in spec. | .spec.MD §5.1, data-model.MD §3.2 |
+| 1.2.4 | Add deck constants | Export deck definitions (e.g. FIBONACCI, LINEAR, TSHIRT) with `deckType` and `deckValues` arrays as in spec. | spec.MD §5.1, data-model.MD §3.2 |
 | 1.2.5 | Add API client skeleton | Minimal HTTP client (e.g. `fetch` wrapper) and/or WebSocket factory that accept base URL; no endpoints yet. Export from `packages/shared` so web and mobile can import. | quickstart.MD §1, §5 |
 | 1.2.6 | Shared build and typecheck | Running `npm run build -w shared` and `npm run typecheck -w shared` from root succeeds. | quickstart.MD §4 |
 
@@ -95,13 +95,13 @@ These tasks establish the monorepo, shared package, web app, mobile app, and ser
 
 Before moving to Phase 2 (first feature slice: Room Management):
 
-- [ ] From repo root: `npm install` (or `pnpm install`) completes without errors.
-- [ ] `npm run typecheck -w shared` passes.
-- [ ] `npm run dev -w web` starts the web app; default page loads.
-- [ ] `npm run start -w mobile` starts the Expo app; app runs in simulator or Expo Go.
-- [ ] `npm run dev -w server` starts the server; `GET /health` returns 200.
-- [ ] Shared package exports types for Room, Participant, Item, Round, Vote, Session and enums (RoomState, DeckType, ParticipantRole, RoundState).
-- [ ] Root README describes how to run the project and points to `drivin-design/`.
+- [X] From repo root: `npm install` (or `pnpm install`) completes without errors.
+- [X] `npm run typecheck -w shared` passes.
+- [X] `npm run dev -w web` starts the web app; default page loads.
+- [X] `npm run start -w mobile` starts the Expo app; app runs in simulator or Expo Go.
+- [X] `npm run dev -w server` starts the server; `GET /health` returns 200.
+- [X] Shared package exports types for Room, Participant, Item, Round, Vote, Session and enums (RoomState, DeckType, ParticipantRole, RoundState).
+- [X] Root README describes how to run the project and points to `drivin-design/`.
 
 ---
 
@@ -115,7 +115,7 @@ After Phase 1 is complete, the next tasks will implement **Room Management** (Us
 
 | Document | Purpose |
 |----------|--------|
-| `drivin-design/.spec.MD` | What to build (product, user stories, success criteria). |
+| `drivin-design/spec.MD` | What to build (product, user stories, success criteria). |
 | `drivin-design/configuration.MD` | How to build (workflow, AI rules, slice order). |
 | `drivin-design/data-model.MD` | Data structures and relationships. |
 | `drivin-design/quickstart.MD` | Stack, versions, and commands. |
