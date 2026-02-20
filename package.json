@@ -1,0 +1,26 @@
+{
+  "name": "poker-plan-it",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "server"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w web",
+    "dev:web": "npm run dev -w web",
+    "dev:server": "npm run dev -w server",
+    "start": "npm run start -w mobile",
+    "start:mobile": "npm run start -w mobile",
+    "build": "npm run build -w shared && npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck -w shared",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "eslint": "^9.15.0",
+    "prettier": "^3.3.3",
+    "typescript-eslint": "^8.15.0"
+  }
+}
