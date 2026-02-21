@@ -29,6 +29,20 @@ export function RoomLobby() {
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const shareableLink = id ? `${window.location.origin}/room/${id}` : "";
+
+  async function copyShareLink() {
+    if (!shareableLink) return;
+    try {
+      await navigator.clipboard.writeText(shareableLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      setError("Could not copy to clipboard");
+    }
+  }
 
   const fetchRoom = useCallback(async () => {
     if (!id) return;
@@ -203,6 +217,30 @@ export function RoomLobby() {
 
       {error && (
         <p style={{ color: "var(--color-error)", marginBottom: 16 }}>{error}</p>
+      )}
+
+      {isFacilitator && !isClosed && (
+        <Card style={{ marginBottom: 24 }}>
+          <h2 style={{ fontSize: "1.1rem", margin: "0 0 8px" }}>Share link</h2>
+          <p style={{ color: "var(--color-text-secondary)", margin: "0 0 12px", fontSize: "0.9rem" }}>
+            Share this link with participants so they can join:
+          </p>
+          <div
+            style={{
+              padding: 12,
+              background: "var(--color-bg)",
+              borderRadius: 8,
+              marginBottom: 12,
+              wordBreak: "break-all",
+              fontSize: "0.9rem",
+            }}
+          >
+            {shareableLink}
+          </div>
+          <Button variant="primary" onClick={copyShareLink}>
+            {linkCopied ? "Copied!" : "Copy link"}
+          </Button>
+        </Card>
       )}
 
       <Card style={{ marginBottom: 24 }}>
