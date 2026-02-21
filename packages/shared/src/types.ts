@@ -31,6 +31,7 @@ export interface Room {
   name: string;
   deckType: DeckType;
   deckValues: string[];
+  deckDescriptions?: Record<string, string> | null;
   state: RoomState;
   facilitatorId: string;
   createdAt: number;
@@ -91,4 +92,14 @@ export interface Session {
   totalItems: number;
   totalParticipants: number;
   userId?: string | null;
+}
+
+/** Vote statistics computed on reveal. See data-model.MD §8.1 */
+export interface VoteStatistics {
+  average: number;
+  median: number;
+  highest: string;
+  lowest: string;
+  suggestedEstimate: string;
+  voteDistribution: Record<string, number>;
 }

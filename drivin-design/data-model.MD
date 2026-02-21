@@ -30,6 +30,7 @@ A single estimation session. Created by a facilitator; participants join via sha
 | `name` | `string` | Required, max 200 chars | User-provided room name. |
 | `deckType` | `enum` | Required | `FIBONACCI`, `LINEAR`, `TSHIRT` (MVP); extensible. |
 | `deckValues` | `string[]` | Required | Card values for this deck (e.g. `["0", "1", "2", "3", "5", "8", "13", "21"]`). |
+| `deckDescriptions` | `Record<string, string>` | Optional | Map of card value → description (e.g. `{ "5": "~1 day", "8": "complex" }`). Hidden from participants until reveal. |
 | `state` | `enum` | Required, default `OPEN` | `OPEN`, `CLOSED`. |
 | `facilitatorId` | `string` (UUID) | Required | References `Participant.id` (the creator). |
 | `createdAt` | `timestamp` | Required | When room was created. |
@@ -153,7 +154,8 @@ A single vote cast by a participant in a round. Secret until round is revealed.
 
 **Business rules:**
 - One vote per participant per round (enforced by unique index).
-- Participant can change vote before reveal (update `cardValue` and `votedAt`).
+- Facilitator can vote like participants; their vote is secret until reveal.
+- Participant and facilitator can change vote before reveal (update `cardValue` and `votedAt`).
 - `cardValue` must be in room’s `deckValues`.
 - Observer cannot vote (enforced by application logic checking `Participant.role`).
 
@@ -162,6 +164,8 @@ A single vote cast by a participant in a round. Secret until round is revealed.
 - `median`: Median of numeric card values.
 - `highest`: Maximum value.
 - `lowest`: Minimum value.
+- `suggestedEstimate`: Rounded average (up or down based on fractional part; e.g. 7.2 → 7, 7.8 → 8).
+- `voteDistribution`: Map of card value → count (e.g. `{ "5": 3, "8": 2, "13": 1 }`).
 
 ---
 
@@ -303,6 +307,7 @@ CREATE TABLE rooms (
   name TEXT NOT NULL,
   deck_type TEXT NOT NULL CHECK (deck_type IN ('FIBONACCI', 'LINEAR', 'TSHIRT')),
   deck_values TEXT NOT NULL, -- JSON array: ["0", "1", "2", ...]
+  deck_descriptions TEXT, -- JSON object: {"5": "~1 day", "8": "complex"}; optional; hidden until reveal
   state TEXT NOT NULL DEFAULT 'OPEN' CHECK (state IN ('OPEN', 'CLOSED')),
   facilitator_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
@@ -408,8 +413,12 @@ For a `Round`, compute:
 - `median`: Median of numeric card values.
 - `highest`: Maximum value.
 - `lowest`: Minimum value.
+- `suggestedEstimate`: Rounded average (e.g. 7.2 → 7, 7.8 → 8); used when facilitator records final estimate.
+- `voteDistribution`: `Record<cardValue, count>` — how many participants voted for each value (e.g. "3 voted 5, 2 voted 8, 1 voted 13").
 
 **Note:** T-shirt sizes (XS, S, M, L, XL) may need mapping to numbers for averaging (e.g. 1, 2, 3, 4, 5).
+
+**Card descriptions:** If `Room.deckDescriptions` exists, descriptions are hidden from participants until `Round.state = REVEALED`. Before reveal, participants see only card values.
 
 ### 8.2 Common Queries
 
