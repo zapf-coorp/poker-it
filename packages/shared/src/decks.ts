@@ -28,8 +28,8 @@ export const TSHIRT: DeckDefinition = {
   deckValues: ["XS", "S", "M", "L", "XL"],
 };
 
-export const DECKS: Record<string, DeckDefinition> = {
-  FIBONACCI,
-  LINEAR,
-  TSHIRT,
+export const DECKS: Record<DeckType, DeckDefinition> = {
+  [DeckType.FIBONACCI]: FIBONACCI,
+  [DeckType.LINEAR]: LINEAR,
+  [DeckType.TSHIRT]: TSHIRT,
 };
