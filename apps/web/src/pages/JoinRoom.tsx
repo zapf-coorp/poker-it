@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { ParticipantRole } from "shared";
 import { roomApi } from "../api";
 import type { Room } from "shared";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
+import { setStoredParticipant } from "../storage";
 
 export function JoinRoom() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [roomError, setRoomError] = useState("");
@@ -45,12 +45,8 @@ export function JoinRoom() {
         joinAsObserver ? ParticipantRole.OBSERVER : ParticipantRole.PARTICIPANT
       );
       setStoredParticipant(id, res.participant.id, res.participant.role === ParticipantRole.FACILITATOR);
-      navigate(`/room/${id}`, {
-        state: {
-          participantId: res.participant.id,
-          isFacilitator: res.participant.role === ParticipantRole.FACILITATOR,
-        },
-      });
+      // Full navigation ensures RoomRoute re-evaluates and shows RoomLobby
+      window.location.assign(`${window.location.origin}/room/${id}`);
     } catch (err) {
       setJoinError(err instanceof Error ? err.message : "Failed to join");
     } finally {

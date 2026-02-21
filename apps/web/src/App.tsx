@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Home } from "./pages/Home";
 import { CreateRoom } from "./pages/CreateRoom";
 import { JoinRoom } from "./pages/JoinRoom";
@@ -6,7 +6,7 @@ import { RoomLobby } from "./pages/RoomLobby";
 import { getStoredParticipant } from "./storage";
 
 function RoomRoute() {
-  const roomId = window.location.pathname.match(/^\/room\/([^/]+)/)?.[1];
+  const { id: roomId } = useParams<{ id: string }>();
   if (!roomId) return <Navigate to="/" replace />;
   const stored = getStoredParticipant(roomId);
   if (stored) {

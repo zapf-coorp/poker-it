@@ -14,12 +14,6 @@ export function CreateRoom() {
   const [deckType, setDeckType] = useState<DeckType>(DeckType.FIBONACCI);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<{
-    roomId: string;
-    participantId: string;
-    shareableLink: string;
-  } | null>(null);
-  const [copied, setCopied] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,72 +26,15 @@ export function CreateRoom() {
     try {
       const baseUrl = window.location.origin;
       const res = await roomApi.createRoom(name.trim(), deckType, baseUrl);
-      setResult({
-        roomId: res.room.id,
-        participantId: res.participant.id,
-        shareableLink: res.shareableLink,
+      setStoredParticipant(res.room.id, res.participant.id, true);
+      navigate(`/room/${res.room.id}`, {
+        state: { participantId: res.participant.id, isFacilitator: true },
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create room");
     } finally {
       setLoading(false);
     }
-  }
-
-  async function copyLink() {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.shareableLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError("Could not copy to clipboard");
-    }
-  }
-
-  function openRoom() {
-    if (result) {
-      setStoredParticipant(result.roomId, result.participantId, true);
-      navigate(`/room/${result.roomId}`, {
-        state: { participantId: result.participantId, isFacilitator: true },
-      });
-    }
-  }
-
-  if (result) {
-    return (
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: 24 }}>
-        <h1 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Room created</h1>
-        <Card>
-          <p style={{ marginBottom: 16 }}>Share this link with participants:</p>
-          <div
-            style={{
-              padding: 12,
-              background: "var(--color-bg)",
-              borderRadius: 8,
-              marginBottom: 16,
-              wordBreak: "break-all",
-              fontSize: "0.9rem",
-            }}
-          >
-            {result.shareableLink}
-          </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <Button variant="primary" onClick={copyLink}>
-              {copied ? "Copied!" : "Copy link"}
-            </Button>
-            <Button variant="secondary" onClick={openRoom}>
-              Open room
-            </Button>
-          </div>
-        </Card>
-        <p style={{ marginTop: 16 }}>
-          <Link to="/" style={{ color: "var(--color-primary)" }}>
-            ← Back to home
-          </Link>
-        </p>
-      </div>
-    );
   }
 
   return (
