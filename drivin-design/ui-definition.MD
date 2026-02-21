@@ -130,7 +130,7 @@ Reusable building blocks; use consistently across screens.
 ### 6.2 Cards
 
 - **Surface** — Rounded corners (e.g. 8–12 px), subtle shadow (light) or border (dark). Used for: room card, estimation item, participant list container.
-- **Voting card** — Poker-inspired: surface color with subtle border; selected state uses primary (felt green) border or background tint; value (number or symbol) centered, large and readable.
+- **Voting card** — Poker-inspired: surface color with subtle border; selected state uses primary (felt green) border or background tint; value (number or symbol) centered, large and readable. Before reveal: show only value; after reveal: optional description below value (if deck has descriptions).
 - **Content:** Title (optional), body, optional footer with actions. Padding consistent (e.g. 16 px).
 
 ### 6.3 Form controls
@@ -271,6 +271,19 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 - **Leave room:** Confirmation: “Leave this room? You will need the link to rejoin.” Buttons: “Leave” (destructive), “Cancel”.
 - **Close room:** Confirmation: “Close this room? No one will be able to vote after closing.” Buttons: “Close room” (destructive), “Cancel”.
 - **Responsive:** Modal or inline; buttons 44 px min on touch; Escape cancels; focus trap in modal.
+
+---
+
+### 7.10 Estimation Process — Voting and Reveal (User Story 6)
+
+- **Purpose:** Implement the full estimation flow: add item, secret voting, reveal, re-vote, record final estimate, post-reveal statistics.
+- **Who:** Facilitator (add item, reveal, re-vote, record final); participant and facilitator (vote); observer (view only after reveal).
+- **Voting (6.2):** Cards show values only (no descriptions before reveal). Facilitator can vote like participants. Single tap to select; "Change vote" until reveal. Feedback: "X of Y have voted".
+- **Reveal (6.3):** All votes displayed simultaneously. Card descriptions (if any) become visible. Highlight highest and lowest.
+- **Post-reveal statistics (6.6):** Show average value, suggested estimate (rounded from average), vote distribution (e.g. "3 voted 5, 2 voted 8, 1 voted 13").
+- **Re-vote (6.4):** "Re-vote" clears current round; previous round kept in history.
+- **Record final (6.5):** Facilitator selects or confirms value; "Use suggested" option. Item marked estimated; next item or close.
+- **Responsive:** Cards and buttons 44 px min; keyboard for card selection on desktop.
 
 ---
 

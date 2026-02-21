@@ -232,6 +232,136 @@ Before moving to Phase 3 (Estimation Process):
 
 ---
 
+## Phase 3: Estimation Process
+
+These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `configuration.MD`. Covers: Add item, Secret voting (participant + facilitator), Reveal votes, Post-reveal statistics, Re-vote, Record final estimate. Implementation must align with `spec.MD`, `data-model.MD`, and `ui-definition.MD`.
+
+**Definition of done for Phase 3:** Facilitator can add estimation items (title, description). Participants and facilitator can vote in secret; votes hidden until reveal. Facilitator reveals votes; all see votes, statistics (average, suggested estimate, vote distribution), and card descriptions (if any). Facilitator can re-vote or record final estimate. Item marked estimated; next item or close room.
+
+---
+
+### 3.1 Server — Item and voting data
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.1.1 | Add item data store | In-memory `Map<string, Item>` for items. Item has: id, roomId, title, description, order, finalEstimate, finalEstimateRecordedAt, createdAt, currentRoundId. | data-model.MD §2.3 |
+| 3.1.2 | Add round data store | In-memory `Map<string, Round>` for rounds. Round has: id, itemId, roundNumber, state (VOTING/REVEALED/FINALIZED), votesRevealedAt, createdAt, finalizedAt. | data-model.MD §2.4 |
+| 3.1.3 | Add vote data store | In-memory `Map<string, Vote>` for votes. Vote has: id, roundId, participantId, cardValue, votedAt. One vote per participant per round; facilitator can vote. | data-model.MD §2.5 |
+| 3.1.4 | Add deckDescriptions to Room | Optional `deckDescriptions` (Record<value, description>) on Room; hidden from participants until reveal. | spec.MD §5.1, data-model.MD §2.1 |
+
+---
+
+### 3.2 Server — REST API for estimation
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.2.1 | `POST /api/rooms/:id/items` — Add item | Accept `{ title, description? }`; validate; create item with next order; create first round (VOTING); return item. Facilitator only. | spec.MD §6.1 |
+| 3.2.2 | `PATCH /api/rooms/:id/items/:itemId` — Edit item | Accept `{ title?, description? }`; validate; update item. Only before voting starts. Facilitator only. | spec.MD §6.1 |
+| 3.2.3 | `DELETE /api/rooms/:id/items/:itemId` — Remove item | Remove item and associated rounds/votes. Facilitator only. | spec.MD §6.1 |
+| 3.2.4 | `POST /api/rooms/:id/items/:itemId/vote` — Cast vote | Accept `{ participantId, cardValue }`; validate cardValue in deckValues; create or update vote. Participant or facilitator (not observer). | spec.MD §6.2 |
+| 3.2.5 | `POST /api/rooms/:id/items/:itemId/reveal` — Reveal votes | Set round state to REVEALED; set votesRevealedAt. Facilitator only. Return votes + statistics (average, median, suggestedEstimate, voteDistribution). | spec.MD §6.3, §6.6 |
+| 3.2.6 | `POST /api/rooms/:id/items/:itemId/revote` — Re-vote | Create new round (roundNumber+1); clear votes for new round; previous round kept in history. Facilitator only. | spec.MD §6.4 |
+| 3.2.7 | `POST /api/rooms/:id/items/:itemId/finalize` — Record final estimate | Accept `{ cardValue }`; set item.finalEstimate, finalEstimateRecordedAt; set round state FINALIZED. Facilitator only. | spec.MD §6.5 |
+
+---
+
+### 3.3 Server — WebSocket for real-time voting
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.3.1 | Emit item added/updated/removed | When facilitator adds, edits, or removes item, broadcast to room: `itemAdded`, `itemUpdated`, `itemRemoved`. | spec.MD §6.1 |
+| 3.3.2 | Emit vote count (no values) | When participant/facilitator votes, broadcast `voteCount` with `{ votedCount, totalCount }`; never reveal values before reveal. | spec.MD §6.2 |
+| 3.3.3 | Emit votes revealed | When facilitator reveals, broadcast `votesRevealed` with votes, statistics (average, median, suggestedEstimate, voteDistribution), and deckDescriptions. | spec.MD §6.3, §6.6 |
+| 3.3.4 | Emit re-vote and finalize | On re-vote: broadcast `revoteStarted`. On finalize: broadcast `finalEstimateRecorded` with item and final value. | spec.MD §6.4, §6.5 |
+
+---
+
+### 3.4 Shared — Estimation API client
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.4.1 | Add `addItem(roomId, title, description?)` | HTTP POST to `/api/rooms/:id/items`; return item. | quickstart.MD §5 |
+| 3.4.2 | Add `updateItem(roomId, itemId, { title?, description? })` | HTTP PATCH to `/api/rooms/:id/items/:itemId`. | quickstart.MD §5 |
+| 3.4.3 | Add `removeItem(roomId, itemId)` | HTTP DELETE to `/api/rooms/:id/items/:itemId`. | quickstart.MD §5 |
+| 3.4.4 | Add `castVote(roomId, itemId, participantId, cardValue)` | HTTP POST to `/api/rooms/:id/items/:itemId/vote`. | quickstart.MD §5 |
+| 3.4.5 | Add `revealVotes(roomId, itemId, participantId)` | HTTP POST to `/api/rooms/:id/items/:itemId/reveal`; return votes + statistics. | quickstart.MD §5 |
+| 3.4.6 | Add `revote(roomId, itemId, participantId)` | HTTP POST to `/api/rooms/:id/items/:itemId/revote`. | quickstart.MD §5 |
+| 3.4.7 | Add `recordFinalEstimate(roomId, itemId, participantId, cardValue)` | HTTP POST to `/api/rooms/:id/items/:itemId/finalize`. | quickstart.MD §5 |
+| 3.4.8 | Extend WebSocket client for estimation events | Subscribe to `itemAdded`, `itemUpdated`, `itemRemoved`, `voteCount`, `votesRevealed`, `revoteStarted`, `finalEstimateRecorded`. | quickstart.MD §1 |
+
+---
+
+### 3.5 Web — Add / Edit Item (facilitator)
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.5.1 | Add item form (modal or inline) | Form: title (required), description (optional); "Save" and "Cancel". "Add item" button triggers form. | ui-definition.MD §7.4 |
+| 3.5.2 | Call addItem API | On submit, call `addItem`; show loading; handle errors. Item appears immediately to all via WebSocket. | spec.MD §6.1 |
+| 3.5.3 | Edit item (before voting) | "Edit" on item card; same form; call `updateItem`. "Remove item" with confirmation; call `removeItem`. | spec.MD §6.1 |
+| 3.5.4 | Theme and responsive | Use component system; touch targets ≥ 44 px; keyboard submit. | ui-definition.MD §5, §6 |
+
+---
+
+### 3.6 Web — Voting (participant and facilitator)
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.6.1 | Card deck UI | Display cards with values from room deckValues only (no descriptions before reveal). Selected card visually distinct. Single tap to vote. | ui-definition.MD §6.2, §7.3, §7.10 |
+| 3.6.2 | Cast vote and change vote | Call `castVote` on selection; allow change until reveal. Facilitator sees same deck and can vote. | spec.MD §6.2 |
+| 3.6.3 | Vote count feedback | Show "X of Y have voted" (no values). Update via WebSocket `voteCount`. | spec.MD §6.2 |
+| 3.6.4 | Observer state | Observer sees "You are observing; no vote." No card deck. | spec.MD §5.5 |
+| 3.6.5 | Keyboard and accessibility | Cards focusable; Enter/Space to select; logical Tab order. | ui-definition.MD §4.2 |
+
+---
+
+### 3.7 Web — Reveal, statistics, re-vote, record final (facilitator)
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.7.1 | Reveal votes button | "Reveal votes" (facilitator only, when voting); call `revealVotes`; all votes displayed simultaneously. | spec.MD §6.3 |
+| 3.7.2 | Post-reveal display | Show all votes; highlight highest and lowest; card descriptions (if any) visible. | spec.MD §6.3, ui-definition.MD §7.10 |
+| 3.7.3 | Post-reveal statistics | Display average value, suggested estimate (rounded), vote distribution (e.g. "3 voted 5, 2 voted 8, 1 voted 13"). | spec.MD §6.6 |
+| 3.7.4 | Re-vote button | "Re-vote" clears current round; call `revote`; new round starts; previous round in history. | spec.MD §6.4 |
+| 3.7.5 | Record final estimate | Select value or "Use suggested"; "Confirm final estimate" button; call `recordFinalEstimate`. Item marked estimated. | spec.MD §6.5, ui-definition.MD §7.5 |
+| 3.7.6 | Next item or close | After finalize: "Add next item" or "Close room". Show estimated items list. | spec.MD §6.5 |
+
+---
+
+### 3.8 Web — Room Lobby integration (Phase 3 scope)
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.8.1 | Current item section | Display current item (title, description); "No item yet" + "Add item" when empty. | ui-definition.MD §7.3 |
+| 3.8.2 | Item list (estimated) | Show list of estimated items with final estimates; current item highlighted. | spec.MD §6.5 |
+| 3.8.3 | State-driven UI | No item → lobby; voting → cards + vote count; revealed → votes + statistics + record/re-vote; finalized → next item. | spec.MD §6.0–6.6 |
+| 3.8.4 | WebSocket sync | All estimation state updates (items, votes, reveal, finalize) propagate in real time to all participants. | spec.MD §6.1–6.6 |
+
+---
+
+### 3.9 Mobile — Estimation Process *(deferred until web MVP complete)*
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 3.9.1 | Add/Edit Item | Same as web: modal form, add/update/remove. | ui-definition.MD §7.4 |
+| 3.9.2 | Voting | Same as web: card deck, tap to vote, vote count. | ui-definition.MD §7.10 |
+| 3.9.3 | Reveal and finalize | Same as web: reveal, statistics, re-vote, record final. | spec.MD §6.3–6.6 |
+
+---
+
+## Phase 3 completion checklist
+
+Before moving to Phase 4 (AI Assist):
+
+- [X] Facilitator can add estimation items (title, description); edit and remove before voting.
+- [X] Participants and facilitator can vote in secret; votes hidden until reveal; "X of Y have voted" shown.
+- [X] Facilitator reveals votes; all see votes, average, suggested estimate, vote distribution; card descriptions visible after reveal.
+- [X] Facilitator can re-vote (new round) or record final estimate.
+- [X] Item marked estimated; facilitator can add next item or close room.
+- [X] Real-time: items, votes, reveal, finalize propagate via WebSocket.
+- [X] All UI follows ui-definition.MD (themes, touch targets, confirmations).
+
+---
+
 ## Reference
 
 | Document | Purpose |
@@ -239,5 +369,6 @@ Before moving to Phase 3 (Estimation Process):
 | `drivin-design/spec.MD` | What to build (product, user stories, success criteria). |
 | `drivin-design/configuration.MD` | How to build (workflow, AI rules, slice order). |
 | `drivin-design/data-model.MD` | Data structures and relationships. |
+| `drivin-design/ui-definition.MD` | UI rules, themes, components, and screen layouts. |
 | `drivin-design/quickstart.MD` | Stack, versions, and commands. |
 | `drivin-design/tasks.MD` | This file—implementation tasks. |

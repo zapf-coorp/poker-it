@@ -43,7 +43,7 @@ Agile teams often face:
 # 2. User Roles
 
 ## 2.1 Facilitator
-Responsible for creating rooms, conducting sessions, and closing estimations.
+Responsible for creating rooms, conducting sessions, and closing estimations. The facilitator can vote like participants; their vote is also secret until reveal.
 
 ## 2.2 Participant
 Votes and contributes to discussions.
@@ -134,6 +134,11 @@ At least one deck must be available; recommended for MVP:
 
 Other decks may be added later; the system must support configurable card sets per room.
 
+### Card Descriptions (Optional)
+- Decks may include optional descriptions per card value (e.g., "5 = small story", "8 = needs design").
+- These descriptions are **hidden from participants** until the facilitator reveals votes.
+- Before reveal, participants see only the card values (numbers or labels), not the descriptions.
+
 ---
 
 ## User Story 5.2 — Join Room
@@ -191,6 +196,26 @@ So that I can watch the session without voting
 
 # 6. Estimation Process
 
+## 6.0 Voting System & Usability
+
+The estimation process follows a structured voting flow designed for clarity and fairness. The system must support synchronous and asynchronous participation while maintaining vote secrecy until reveal.
+
+### Voting System
+- Participants and the facilitator select a card value from the room's deck (e.g. Fibonacci, Linear, T-shirt).
+- Votes are hidden until the facilitator reveals them.
+- One item is estimated at a time; the facilitator controls progression.
+- Re-voting is allowed after discussion to reach consensus.
+- **Card descriptions:** If cards have optional descriptions (e.g., "5 = ~1 day", "8 = complex"), these are not shown to participants until the facilitator reveals votes. Before reveal, participants see only the card values.
+
+### Usability Principles
+- **Clarity:** Current item, voting status, and participant count are always visible.
+- **Low friction:** Vote selection is quick (e.g. single click/tap); participants can change their vote before reveal.
+- **Feedback:** System confirms vote submission; shows "X of Y have voted" without revealing values.
+- **Consistency:** Card deck and interaction patterns are consistent across the session.
+- **Accessibility:** Voting controls are keyboard-navigable and have sufficient contrast.
+
+---
+
 ## User Story 6.1 — Add Estimation Item
 
 As a facilitator  
@@ -206,14 +231,16 @@ So that the team can estimate it
 
 ## User Story 6.2 — Secret Voting
 
-As a participant  
+As a participant or facilitator  
 I want to select a card  
 So that I can register my estimate  
 
 ### Success Criteria
 - Votes remain hidden until revealed.
-- Participants can change their vote before reveal.
+- Facilitator can vote like participants; their vote is secret until reveal.
+- Participants and facilitator can change their vote before reveal.
 - System shows how many participants have voted without revealing values.
+- Card descriptions (if any) are not shown to participants before reveal; only card values are visible for voting.
 
 ---
 
@@ -225,6 +252,7 @@ So that participants are not influenced prematurely
 
 ### Success Criteria
 - All votes are displayed at the same time.
+- Card descriptions (if any) become visible to all after reveal.
 - System highlights highest and lowest estimates.
 - System calculates average and median values.
 
@@ -253,6 +281,19 @@ So that the session has a clear, recorded decision
 - The recorded value is the single official estimate for that item (per business rules).
 - Item is then marked as estimated; facilitator can add the next item or close the room.
 - If re-vote occurs, final estimate is only recorded after a subsequent reveal (or when facilitator explicitly sets it).
+
+
+## User Story 6.6 — Post-Reveal Statistics
+
+As a participant or facilitator  
+I want to see statistics after votes are revealed  
+So that I can understand the distribution of votes and the suggested estimate  
+
+### Success Criteria
+- After revealing votes for an item, the system displays:
+  - **Average value** (valor médio) of all votes.
+  - **Suggested estimate** rounded up or down based on the average (e.g. if average is 7.2, suggest 7; if 7.8, suggest 8).
+  - **Vote distribution**: how many people voted for each value (e.g. "3 voted 5, 2 voted 8, 1 voted 13").
 
 ---
 
@@ -381,7 +422,7 @@ These may be introduced in later versions with updated user stories and success 
 |------|------------|
 | **Room** | A single estimation session. Has a unique ID, name, deck type, creator (facilitator), and state (open/closed). |
 | **Item** | A single work item (e.g. user story, task) being estimated. Has title, description, and exactly one final estimate once recorded. |
-| **Round** | One voting cycle for one item: participants vote in secret, then votes are revealed, then facilitator records the final estimate. A re-vote starts a new round for the same item. |
+| **Round** | One voting cycle for one item: participants and facilitator vote in secret, then votes are revealed, then facilitator records the final estimate. A re-vote starts a new round for the same item. |
 | **Final estimate** | The official value recorded for an item after discussion; used in history and export. |
-| **Deck** | The set of allowed vote values (e.g. Fibonacci numbers) chosen when the room is created. |
+| **Deck** | The set of allowed vote values (e.g. Fibonacci numbers) chosen when the room is created. May include optional descriptions per card; descriptions are hidden from participants until reveal. |
 

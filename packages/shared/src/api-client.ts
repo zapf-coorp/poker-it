@@ -37,6 +37,26 @@ export function createHttpClient(baseUrl: string) {
       }
       return res.json() as Promise<T>;
     },
+    async patch<T>(path: string, body?: unknown): Promise<T> {
+      const res = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      return res.json() as Promise<T>;
+    },
+    async delete(path: string, params?: Record<string, string>): Promise<void> {
+      const url = params && Object.keys(params).length > 0
+        ? `${baseUrl}${path}${path.includes("?") ? "&" : "?"}${new URLSearchParams(params).toString()}`
+        : `${baseUrl}${path}`;
+      const res = await fetchWithTimeout(url, { method: "DELETE" });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+    },
   };
 }
 
