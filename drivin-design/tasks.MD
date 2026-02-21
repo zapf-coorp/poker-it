@@ -352,13 +352,13 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 
 Before moving to Phase 4 (AI Assist):
 
-- [ ] Facilitator can add estimation items (title, description); edit and remove before voting.
-- [ ] Participants and facilitator can vote in secret; votes hidden until reveal; "X of Y have voted" shown.
-- [ ] Facilitator reveals votes; all see votes, average, suggested estimate, vote distribution; card descriptions visible after reveal.
-- [ ] Facilitator can re-vote (new round) or record final estimate.
-- [ ] Item marked estimated; facilitator can add next item or close room.
-- [ ] Real-time: items, votes, reveal, finalize propagate via WebSocket.
-- [ ] All UI follows ui-definition.MD (themes, touch targets, confirmations).
+- [X] Facilitator can add estimation items (title, description); edit and remove before voting.
+- [X] Participants and facilitator can vote in secret; votes hidden until reveal; "X of Y have voted" shown.
+- [X] Facilitator reveals votes; all see votes, average, suggested estimate, vote distribution; card descriptions visible after reveal.
+- [X] Facilitator can re-vote (new round) or record final estimate.
+- [X] Item marked estimated; facilitator can add next item or close room.
+- [X] Real-time: items, votes, reveal, finalize propagate via WebSocket.
+- [X] All UI follows ui-definition.MD (themes, touch targets, confirmations).
 
 ---
 
