@@ -1,6 +1,6 @@
 # Data Model
 
-This document defines the **data structures** and **relationships** needed for the Planning Poker application, derived from `.spec.MD`. It supports the spec-driven workflow defined in `configuration.MD`.
+This document defines the **data structures** and **relationships** needed for the Planning Poker application, derived from `spec.MD`. It supports the spec-driven workflow defined in `configuration.MD`.
 
 ---
 
@@ -432,7 +432,7 @@ When adding accounts:
 
 ## 10. Reference to Spec
 
-- **What data is needed:** Derived from `.spec.MD` user stories and business rules.
+- **What data is needed:** Derived from `spec.MD` user stories and business rules.
 - **How to use:** See `configuration.MD` for spec-driven implementation.
 - **Stack:** See `quickstart.MD` for database choices (SQLite MVP, Postgres later).
 

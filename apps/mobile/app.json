@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Poker Plan It",
+    "slug": "poker-plan-it",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pokerplanit.app"
+    },
+    "android": {
+      "package": "com.pokerplanit.app"
+    }
+  }
+}

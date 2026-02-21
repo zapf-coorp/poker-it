@@ -1,6 +1,6 @@
 # Quickstart — Stack & Getting Started
 
-This document describes the **technology stack** and how to run the project. It supports the spec-driven workflow defined in `configuration.MD` and the product described in `.spec.MD`.
+This document describes the **technology stack** and how to run the project. It supports the spec-driven workflow defined in `configuration.MD` and the product described in `spec.MD`.
 
 ---
 
@@ -42,7 +42,7 @@ poker-plan-it/
 │   └── shared/              # TypeScript: API client, types, validation, business rules
 ├── server/                  # Optional: Node backend (or in apps/backend)
 ├── drivin-design/           # Spec and config (this folder)
-│   ├── .spec.MD
+│   ├── spec.MD
 │   ├── configuration.MD
 │   └── quickstart.MD
 ├── package.json             # Workspace root
@@ -112,17 +112,17 @@ Run all commands from the **repo root** (`poker-plan-it/`).
 - **API client, types, validation, business rules** → `packages/shared` (used by both web and mobile).
 - **UI and platform-specific code** → `apps/web` or `apps/mobile`.
 - **Real-time events** (join room, vote, reveal) → same WebSocket API; shared types in `packages/shared`.
-- **Spec and process** → `drivin-design/` (`.spec.MD`, `configuration.MD`, this file).
+- **Spec and process** → `drivin-design/` (`spec.MD`, `configuration.MD`, this file).
 
 ---
 
 ## 6. Reference to Spec & Config
 
-- **What to build:** `drivin-design/.spec.MD`
+- **What to build:** `drivin-design/spec.MD`
 - **How to build it (workflow, AI rules):** `drivin-design/configuration.MD`
 - **Data structures:** `drivin-design/data-model.MD`
 - **Implementation tasks:** `drivin-design/tasks.MD`
 - **UI/UX (themes, breakpoints, screens):** `drivin-design/ui-definition.MD`
 - **Stack and quickstart:** this file (`drivin-design/quickstart.MD`)
 
-When prompting AI to implement a slice, use: *"Implement [User Story X.Y] from .spec.MD. Tech stack: see quickstart.MD."*
+When prompting AI to implement a slice, use: *"Implement [User Story X.Y] from spec.MD. Tech stack: see quickstart.MD."*
