@@ -196,10 +196,12 @@ export function RoomLobby() {
       setItems((prev) =>
         prev.map((i) => (i.id === item.id ? { ...item, currentRound: undefined } : i)).sort((a, b) => a.order - b.order)
       );
+      
       setRevealedVotes([]);
       setRevealedStats(null);
       setRevealedItemId(null);
       setFinalEstimate("");
+      setMyVote(null);
     });
     setSocket(s);
     return () => {
