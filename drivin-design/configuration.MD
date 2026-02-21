@@ -97,6 +97,7 @@ Adjust order only when technical constraints (e.g. auth, persistence) require it
 ## 6. Conventions and Constraints
 
 - **Stack and repo** — Defined in **`quickstart.MD`**: React (web), Expo (mobile), monorepo, shared TypeScript, real-time (WebSockets), backend (Node + TypeScript). Keep the spec (`spec.MD`) stack-agnostic.
+- **Current focus (until web app is complete)** — Develop **web app and server only**. No mobile implementation. Server uses in-memory / mocked data. Mobile tasks are deferred; resume after web MVP is stable.
 - **Quality bar** — Code should be readable, and behavior covered by the success criteria should be verifiable (tests or explicit manual steps).
 - **Accessibility and i18n** — If the spec mentions “usable via web browser” or diverse users, assume basic accessibility and consider text/labels ready for later i18n unless the spec says otherwise.
 - **Security and privacy** — Align with business rules (e.g. votes secret until reveal). No credentials or secrets in the spec or in code; use env/config.

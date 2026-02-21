@@ -2,6 +2,8 @@
 
 This file lists **implementation tasks** derived from the spec-driven workflow (`configuration.MD`), the product spec (`spec.MD`), the data model (`data-model.MD`), and the stack (`quickstart.MD`). Tasks are grouped by phase; complete **Phase 1 (Architecture)** before starting feature slices.
 
+**Current focus:** Web app + server only. Mobile tasks (Phase 2.8, etc.) are **deferred** until the web MVP is complete. Server uses in-memory / mocked data.
+
 ---
 
 ## Phase 1: Create and Configure the Architecture
@@ -105,9 +107,128 @@ Before moving to Phase 2 (first feature slice: Room Management):
 
 ---
 
-## Phase 2 (placeholder)
+## Phase 2: Room Management
 
-After Phase 1 is complete, the next tasks will implement **Room Management** (User Stories 5.1–5.3, 5.4, 5.5) per `configuration.MD` §5 (slice ordering). Those tasks will be added here or in a separate slice file.
+These tasks implement **Room Management** (User Stories 5.1–5.5) per `configuration.MD` §5 (slice ordering). Covers: Create Room, Join Room, Close Room, Leave Room, Join as Observer. Implementation must align with `spec.MD`, `data-model.MD`, and `ui-definition.MD`.
+
+**Definition of done for Phase 2:** A facilitator can create a room with name and deck type, get a shareable link, and copy it. A participant can join via link with display name (or as observer). Participants see each other in the room. Facilitator can close the room; participants can leave. All success criteria for User Stories 5.1–5.5 are satisfied.
+
+---
+
+### 2.1 Server — Room data and storage
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.1.1 | Add room data store | In-memory `Map<string, Room>` (or SQLite per data-model) for rooms. Room has: id (UUID), name, deckType, deckValues, state, facilitatorId, createdAt, closedAt. | data-model.MD §2.1 |
+| 2.1.2 | Add participant data store | In-memory `Map<string, Participant>` for participants. Participant has: id, roomId, displayName, role, joinedAt, leftAt, isActive, sessionId. | data-model.MD §2.2 |
+| 2.1.3 | Add session data store | In-memory `Map<string, Session>` for sessions (1:1 with room). Session has: id, roomId, startedAt, closedAt, facilitatorId, facilitatorName, totalItems, totalParticipants. | data-model.MD §2.6 |
+| 2.1.4 | Implement room creation logic | Create room with unique ID; create facilitator participant; create session; return room + shareable link (e.g. `/room/{id}`). Deck values from shared deck constants. | spec.MD §5.1, data-model.MD §2.1 |
+
+---
+
+### 2.2 Server — REST API for rooms
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.2.1 | `POST /api/rooms` — Create room | Accept `{ name, deckType }`; validate; create room + facilitator + session; return `{ room, participant, shareableLink }`. | spec.MD §5.1 |
+| 2.2.2 | `GET /api/rooms/:id` — Get room | Return room by ID; 404 if not found or closed (or allow read for closed). Include deckValues, state, name. | spec.MD §5.2 |
+| 2.2.3 | `POST /api/rooms/:id/join` — Join room | Accept `{ displayName, role? }`; validate name; create participant; return `{ participant, room }`. Reject if room closed. Role defaults to PARTICIPANT; allow OBSERVER. | spec.MD §5.2, §5.5 |
+| 2.2.4 | `POST /api/rooms/:id/leave` — Leave room | Accept `{ participantId }`; set participant `isActive=false`, `leftAt=now`; return success. Idempotent if already left. | spec.MD §5.4 |
+| 2.2.5 | `POST /api/rooms/:id/close` — Close room | Accept `{ participantId }`; verify participant is facilitator; set room `state=CLOSED`, `closedAt=now`; update session; return success. Reject if not facilitator. | spec.MD §5.3 |
+
+---
+
+### 2.3 Server — WebSocket for real-time presence
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.3.1 | Add WebSocket server | Socket.io or native WS; accept connections; associate socket with room + participant (via join token or session). | quickstart.MD §1 |
+| 2.3.2 | Emit participant joined/left | When participant joins or leaves, broadcast to room: `participantJoined`, `participantLeft` with participant info. Clients see updated list. | spec.MD §5.2, §5.4 |
+| 2.3.3 | Emit room closed | When facilitator closes room, broadcast `roomClosed` to all in room. Clients can show read-only state. | spec.MD §5.3 |
+| 2.3.4 | Handle disconnect | On socket disconnect, mark participant `isActive=false`, `leftAt=now`; broadcast `participantLeft`. | spec.MD §5.4, NFRs |
+
+---
+
+### 2.4 Shared — Room API client
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.4.1 | Add `createRoom(name, deckType)` | HTTP POST to `/api/rooms`; return `{ room, participant, shareableLink }`. Use shared types. | quickstart.MD §5 |
+| 2.4.2 | Add `getRoom(roomId)` | HTTP GET `/api/rooms/:id`; return room or throw. | quickstart.MD §5 |
+| 2.4.3 | Add `joinRoom(roomId, displayName, role?)` | HTTP POST `/api/rooms/:id/join`; return `{ participant, room }`. | quickstart.MD §5 |
+| 2.4.4 | Add `leaveRoom(roomId, participantId)` | HTTP POST `/api/rooms/:id/leave`. | quickstart.MD §5 |
+| 2.4.5 | Add `closeRoom(roomId, participantId)` | HTTP POST `/api/rooms/:id/close`. | quickstart.MD §5 |
+| 2.4.6 | Add WebSocket room client | Connect to room; subscribe to `participantJoined`, `participantLeft`, `roomClosed`; expose typed events. | quickstart.MD §1 |
+
+---
+
+### 2.5 Web — Create Room screen
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.5.1 | Create Room form | Screen "Create room" with: room name (required), deck selector (Fibonacci, Linear 0–10, T-shirt), "Create room" button. Use component system (inputs, buttons). | ui-definition.MD §7.2 |
+| 2.5.2 | Call createRoom API | On submit, call shared `createRoom`; show loading state; handle validation and errors. | spec.MD §5.1 |
+| 2.5.3 | Success state with shareable link | After success: show "Room created", shareable link, "Copy link" button (one-click copy to clipboard). Optional "Open room" to navigate to room. | spec.MD §5.1 |
+| 2.5.4 | Theme and responsive | Light/dark theme; mobile-first; touch targets ≥ 44 px; keyboard submit. | ui-definition.MD §5, §6 |
+
+---
+
+### 2.6 Web — Join Room screen (Landing)
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.6.1 | Join by link screen | When user opens `/room/:id` (or similar): show "Join [Room name]" or "Join planning session"; form: display name (required), "Join as observer" toggle, "Join" button. | ui-definition.MD §7.1 |
+| 2.6.2 | Fetch room before join | Load room via `getRoom`; show room name; handle 404 (room not found) and closed room with message + "Create room instead" link. | spec.MD §5.2 |
+| 2.6.3 | Call joinRoom API | On submit, call `joinRoom(roomId, displayName, role)`; role = OBSERVER if toggle on, else PARTICIPANT. Show loading; handle errors. | spec.MD §5.2, §5.5 |
+| 2.6.4 | Navigate to room on success | After join, navigate to room lobby; persist participant ID (e.g. in state or storage) for leave/close. | spec.MD §5.2 |
+
+---
+
+### 2.7 Web — Room Lobby (unified room view, Phase 2 scope)
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.7.1 | Room lobby layout | Header: room name, badge (Open/Closed). Section: participant list (avatars/names, "N participants"). For Phase 2: no items yet; show "No item yet" placeholder. | ui-definition.MD §7.3 |
+| 2.7.2 | Participant list with real-time updates | Display active participants; connect WebSocket; update list on `participantJoined`, `participantLeft`. Observers shown with "(observer)" label. | spec.MD §5.2, §5.5 |
+| 2.7.3 | Leave room (participant) | "Leave" button; confirmation: "Leave this room? You will need the link to rejoin." Destructive "Leave" + "Cancel". Call `leaveRoom`; navigate away. | spec.MD §5.4, ui-definition.MD §7.9 |
+| 2.7.4 | Close room (facilitator) | "Close room" button (facilitator only); confirmation: "Close this room? No one will be able to vote after closing." Call `closeRoom`; show read-only state. | spec.MD §5.3, ui-definition.MD §7.9 |
+| 2.7.5 | Handle room closed event | On WebSocket `roomClosed`, update UI to read-only; hide vote/close actions; show "Session ended" or similar. | spec.MD §5.3 |
+| 2.7.6 | Role-based UI | Facilitator sees "Close room"; participant/observer see "Leave". Observer sees same layout but no vote controls (none in Phase 2). | spec.MD §5.3, §5.4, §5.5 |
+
+---
+
+### 2.8 Mobile — Room Management screens *(deferred until web MVP complete)*
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.8.1 | Create Room screen | Same as web: room name, deck selector, create button; success with shareable link and copy. Use Expo Share API or clipboard for copy. | ui-definition.MD §7.2, quickstart.MD |
+| 2.8.2 | Join Room screen | Same as web: display name, observer toggle, join button. Handle room not found/closed. | ui-definition.MD §7.1 |
+| 2.8.3 | Room Lobby screen | Same as web: participants list, leave/close with confirmation. Touch targets ≥ 44 px. | ui-definition.MD §7.3 |
+| 2.8.4 | Navigation and routing | Deep link or route for `/room/:id`; navigate create → lobby, join → lobby. | quickstart.MD |
+
+---
+
+### 2.9 Routing and entry points
+
+| ID | Task | Acceptance criteria | Ref |
+|----|------|---------------------|-----|
+| 2.9.1 | Web routing | Routes: `/` (landing or create), `/room/:id` (join or lobby), `/room/:id/create` (create from home). Lobby at `/room/:id` when joined. | ui-definition.MD |
+| 2.9.2 | Entry from shareable link | Shareable link format: `{origin}/room/{roomId}`. Opening link shows join screen if not joined; lobby if already joined (e.g. from storage). | spec.MD §5.1 |
+
+---
+
+## Phase 2 completion checklist
+
+Before moving to Phase 3 (Estimation Process):
+
+- [X] Facilitator can create room with name and deck; gets shareable link; can copy link (one-click).
+- [X] Participant can join via link with display name; sees participant list; can view room.
+- [X] Participant can choose "Join as observer"; observer sees room but cannot vote; observer appears in list.
+- [X] Participant can leave room; confirmation shown; after leave, no longer in list; others see update.
+- [X] Facilitator can close room; confirmation shown; after close, no votes possible; session history viewable.
+- [X] Real-time: participant list updates when others join/leave; room closed event propagates.
+- [X] Web supports create, join, lobby, leave, close flows. (Mobile deferred.)
+- [X] All UI follows ui-definition.MD (themes, touch targets, confirmations).
 
 ---
 

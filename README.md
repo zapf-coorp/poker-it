@@ -54,5 +54,15 @@ poker-plan-it/
 ## Environment
 
 - **Web:** `VITE_API_URL` — API base URL (default: `http://localhost:3000`)
-- **Mobile:** `EXPO_PUBLIC_API_URL` — API base URL (default: `http://localhost:3000`)
+- **Mobile:** `EXPO_PUBLIC_API_URL` — API base URL
+  - **Emulador Android:** `http://10.0.2.2:3000` (padrão)
+  - **Simulador iOS:** `http://localhost:3000` (padrão)
+  - **Dispositivo físico:** Use o IP do seu PC na mesma rede, ex: `http://192.168.1.100:3000`
+    ```bash
+    # Windows (PowerShell)
+    $env:EXPO_PUBLIC_API_URL="http://192.168.1.100:3000"; npm run start -w mobile
+    ```
+    Descubra seu IP com `ipconfig` (Windows) ou `ifconfig` (Mac/Linux).
 - **Server:** `PORT` — Server port (default: `3000`)
+
+**Importante:** O servidor deve estar rodando (`npm run dev -w server`) antes de usar o app mobile.

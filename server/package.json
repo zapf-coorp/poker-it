@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "express": "^4.21.1",
-    "shared": "*"
+    "shared": "*",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
