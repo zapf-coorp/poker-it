@@ -1,10 +1,89 @@
+/**
+ * Planning Poker — Theme and base styles.
+ * See drivin-design/ui-definition.MD §5.
+ */
+
 :root {
   font-family: system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+
+  /* Clear (light) theme */
+  --color-bg: #f5f0e8;
+  --color-surface: #faf8f5;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #555;
+  --color-border: #e0d9cf;
+  --color-primary: #0d6b0d;
+  --color-primary-text: #ffffff;
+  --color-secondary: #c9a227;
+  --color-error: #b91c1c;
+  --color-focus: #0d6b0d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0d2d0d;
+    --color-surface: #143d14;
+    --color-text: #e8e8e8;
+    --color-text-secondary: #a8a8a8;
+    --color-border: #1a4d1a;
+    --color-primary: #1a8c1a;
+    --color-primary-text: #ffffff;
+    --color-secondary: #e6c04a;
+    --color-error: #dc2626;
+    --color-focus: #1a8c1a;
+  }
+}
+
+[data-theme="dark"] {
+  --color-bg: #0d2d0d;
+  --color-surface: #143d14;
+  --color-text: #e8e8e8;
+  --color-text-secondary: #a8a8a8;
+  --color-border: #1a4d1a;
+  --color-primary: #1a8c1a;
+  --color-primary-text: #ffffff;
+  --color-secondary: #e6c04a;
+  --color-error: #dc2626;
+  --color-focus: #1a8c1a;
+}
+
+[data-theme="light"] {
+  --color-bg: #f5f0e8;
+  --color-surface: #faf8f5;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #555;
+  --color-border: #e0d9cf;
+  --color-primary: #0d6b0d;
+  --color-primary-text: #ffffff;
+  --color-secondary: #c9a227;
+  --color-error: #b91c1c;
+  --color-focus: #0d6b0d;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Touch targets ≥ 44px */
+button,
+input,
+select,
+[role="button"] {
+  min-height: 44px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }

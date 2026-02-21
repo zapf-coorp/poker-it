@@ -4,20 +4,30 @@
  * See drivin-design/quickstart.MD §1, §5.
  */
 
+const FETCH_TIMEOUT_MS = 15000;
+
+function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+    clearTimeout(timeout)
+  );
+}
+
 /**
  * HTTP client that accepts a base URL. Wraps fetch for REST calls.
  */
 export function createHttpClient(baseUrl: string) {
   return {
     async get<T>(path: string): Promise<T> {
-      const res = await fetch(`${baseUrl}${path}`);
+      const res = await fetchWithTimeout(`${baseUrl}${path}`);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
       return res.json() as Promise<T>;
     },
     async post<T>(path: string, body?: unknown): Promise<T> {
-      const res = await fetch(`${baseUrl}${path}`, {
+      const res = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: body ? JSON.stringify(body) : undefined,

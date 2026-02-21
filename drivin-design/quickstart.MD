@@ -2,6 +2,8 @@
 
 This document describes the **technology stack** and how to run the project. It supports the spec-driven workflow defined in `configuration.MD` and the product described in `spec.MD`.
 
+**Current focus:** Web app + server only. Mobile development is deferred until the web MVP is complete. Server uses in-memory data.
+
 ---
 
 ## 1. Stack Overview
