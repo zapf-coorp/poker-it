@@ -359,6 +359,9 @@ Before moving to Phase 4 (AI Assist):
 - [X] Item marked estimated; facilitator can add next item or close room.
 - [X] Real-time: items, votes, reveal, finalize propagate via WebSocket.
 - [X] All UI follows ui-definition.MD (themes, touch targets, confirmations).
+- [X] FIX: After revealing votes guests are not updated to new item to vote
+- [X] FIX: After revealing votes, Host can't vote again — last value was fixed
+- [X] FIX: Anyone should change voting before the vote is revealed
 
 ---
 

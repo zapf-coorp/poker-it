@@ -1,0 +1,9 @@
+version: "3"
+# authtoken vem de NGROK_AUTHTOKEN no .env (não commitar .env)
+tunnels:
+  web:
+    proto: http
+    addr: 5173
+  api:
+    proto: http
+    addr: 3000

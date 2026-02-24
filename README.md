@@ -66,3 +66,21 @@ poker-plan-it/
 - **Server:** `PORT` — Server port (default: `3000`)
 
 **Importante:** O servidor deve estar rodando (`npm run dev -w server`) antes de usar o app mobile.
+
+## Testar online com Ngrok (um único túnel)
+
+Para compartilhar com amigos usando **apenas um túnel Ngrok**:
+
+1. **Build e serve** (web + API no mesmo processo, porta 3000):
+   ```bash
+   npm run serve
+   ```
+
+2. **Exponha com Ngrok:**
+   ```bash
+   ngrok http 3000
+   ```
+
+3. **Compartilhe a URL** do Ngrok com os amigos (ex: `https://xxx.ngrok-free.app`).
+
+O comando `serve` faz build do web app (com API em same-origin), build do server e inicia tudo na porta 3000. O Ngrok expõe essa porta — web e API funcionam pela mesma URL.

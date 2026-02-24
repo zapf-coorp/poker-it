@@ -1,9 +1,12 @@
 /**
  * Planning Poker server — REST API + WebSocket.
  * Phase 2.2, 2.3 — Room management and real-time presence.
+ * Serves web app static files when built (single-process mode for Ngrok).
  */
 
 import { createServer } from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import { Server as SocketIOServer } from "socket.io";
 import {
@@ -374,6 +377,21 @@ app.post("/api/rooms/:id/items/:itemId/finalize", (req, res) => {
     res.status(status).json({ error: msg });
   }
 });
+
+// --- Serve web app (when built) — single-process mode for Ngrok ---
+// Must be after all API routes so /api/* is not caught
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const webDistPath = path.resolve(__dirname, "../../apps/web/dist");
+
+const { existsSync } = await import("node:fs");
+if (existsSync(webDistPath)) {
+  app.use(express.static(webDistPath));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(webDistPath, "index.html"));
+  });
+  console.log("Serving web app from", webDistPath);
+}
 
 // --- HTTP server + Socket.io (Phase 2.3) ---
 

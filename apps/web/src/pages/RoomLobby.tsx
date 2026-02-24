@@ -128,6 +128,15 @@ export function RoomLobby() {
     fetchItems();
   }, [fetchItems]);
 
+  // Reset vote/revealed state when switching to a new item (fixes stale state across items)
+  useEffect(() => {
+    setMyVote(null);
+    setRevealedVotes([]);
+    setRevealedStats(null);
+    setRevealedItemId(null);
+    setFinalEstimate("");
+  }, [currentItem?.id]);
+
   // WebSocket for real-time updates
   useEffect(() => {
     if (!id || !participantId || !room) return;
@@ -147,15 +156,24 @@ export function RoomLobby() {
     s.on("roomClosed", () => {
       setRoom((prev) => (prev ? { ...prev, state: RoomState.CLOSED } : null));
     });
-    s.on("itemAdded", () => fetchItems());
+    s.on("itemAdded", () => {
+      setMyVote(null);
+      setRevealedVotes([]);
+      setRevealedStats(null);
+      setRevealedItemId(null);
+      fetchItems();
+    });
     s.on("itemUpdated", () => fetchItems());
     s.on("itemRemoved", (payload: { itemId: string }) => {
       setItems((prev) => prev.filter((i) => i.id !== payload.itemId));
-      if (revealedItemId === payload.itemId) {
-        setRevealedVotes([]);
-        setRevealedStats(null);
-        setRevealedItemId(null);
-      }
+      setRevealedItemId((prev) => {
+        if (prev === payload.itemId) {
+          setRevealedVotes([]);
+          setRevealedStats(null);
+          return null;
+        }
+        return prev;
+      });
     });
     s.on("voteCount", (payload: { itemId: string; votedCount: number; totalCount: number }) => {
       setItems((prev) =>
@@ -185,30 +203,27 @@ export function RoomLobby() {
         );
       }
     );
-    s.on("revoteStarted", (payload: { itemId: string }) => {
+    s.on("revoteStarted", () => {
       setRevealedVotes([]);
       setRevealedStats(null);
       setRevealedItemId(null);
       setMyVote(null);
       fetchItems();
     });
-    s.on("finalEstimateRecorded", ({ item }: { item: Item }) => {
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...item, currentRound: undefined } : i)).sort((a, b) => a.order - b.order)
-      );
-      
+    s.on("finalEstimateRecorded", () => {
       setRevealedVotes([]);
       setRevealedStats(null);
       setRevealedItemId(null);
       setFinalEstimate("");
       setMyVote(null);
+      fetchItems();
     });
     setSocket(s);
     return () => {
       s.disconnect();
       setSocket(null);
     };
-  }, [id, participantId, room?.id, revealedItemId, fetchItems]);
+  }, [id, participantId, room?.id, fetchItems]);
 
   async function handleLeave() {
     if (!id || !participantId) return;
@@ -539,6 +554,11 @@ export function RoomLobby() {
                   <>
                     <p style={{ color: "var(--color-text-secondary)", marginBottom: 12 }}>
                       {votingCount} of {totalVoters} have voted
+                      {myVote && (
+                        <span style={{ display: "block", fontSize: "0.85rem", marginTop: 4 }}>
+                          Tap another card to change your vote
+                        </span>
+                      )}
                     </p>
                     <div
                       style={{
