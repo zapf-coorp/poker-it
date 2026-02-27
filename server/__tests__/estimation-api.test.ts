@@ -64,7 +64,7 @@ describe("Phase 3 — Estimation API", () => {
     });
 
     it("returns 400 when non-facilitator adds item", async () => {
-      const { roomId, itemId } = await createRoomWithItem();
+      const { roomId } = await createRoomWithItem();
       const joinRes = await request(app)
         .post(`/api/rooms/${roomId}/join`)
         .send({ displayName: "Participant" });
