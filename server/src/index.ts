@@ -433,6 +433,11 @@ io.on("connection", (socket) => {
   });
 });
 
-httpServer.listen(port, "0.0.0.0", () => {
-  console.log(`Server listening on port ${port} (accepting connections from all interfaces)`);
-});
+// Skip listen when running tests (Vitest sets VITEST=true)
+if (process.env.VITEST !== "true") {
+  httpServer.listen(port, "0.0.0.0", () => {
+    console.log(`Server listening on port ${port} (accepting connections from all interfaces)`);
+  });
+}
+
+export { app };
