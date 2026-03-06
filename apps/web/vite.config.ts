@@ -7,6 +7,10 @@ export default defineConfig({
   server: {
     port: 5173,
     allowedHosts: [".ngrok-free.dev", "gastrocolic-delois-restiform.ngrok-free.dev"],
+    proxy: {
+      "/api": { target: "http://localhost:3000", changeOrigin: true },
+      "/socket.io": { target: "http://localhost:3000", ws: true },
+    },
   },
   resolve: {
     alias: {

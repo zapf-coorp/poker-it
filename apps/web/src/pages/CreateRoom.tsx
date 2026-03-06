@@ -1,19 +1,22 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { DeckType, DECKS } from "shared";
-import { roomApi } from "../api";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
-import { Link } from "react-router-dom";
-import { setStoredParticipant } from "../storage";
+import { Select } from "../components/Select";
+import { useCreateRoom } from "../hooks/useCreateRoom";
+
+const pageStyles: React.CSSProperties = {
+  maxWidth: 480,
+  margin: "0 auto",
+  padding: 24,
+};
 
 export function CreateRoom() {
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [deckType, setDeckType] = useState<DeckType>(DeckType.FIBONACCI);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { createRoom, isLoading, error, setError } = useCreateRoom();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,23 +25,17 @@ export function CreateRoom() {
       setError("Room name is required");
       return;
     }
-    setLoading(true);
     try {
-      const baseUrl = window.location.origin;
-      const res = await roomApi.createRoom(name.trim(), deckType, baseUrl);
-      setStoredParticipant(res.room.id, res.participant.id, true);
-      navigate(`/room/${res.room.id}`, {
-        state: { participantId: res.participant.id, isFacilitator: true },
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create room");
-    } finally {
-      setLoading(false);
+      await createRoom(name, deckType);
+    } catch {
+      // Error already set in hook
     }
   }
 
+  const hasNameError = error && !name.trim();
+
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", padding: 24 }}>
+    <div style={pageStyles}>
       <h1 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Create room</h1>
       <Card>
         <form onSubmit={handleSubmit}>
@@ -48,48 +45,25 @@ export function CreateRoom() {
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Sprint 42"
             autoFocus
-            error={error && !name.trim() ? error : undefined}
+            error={hasNameError ? error : undefined}
           />
-          <div style={{ marginBottom: 16 }}>
-            <label
-              htmlFor="deck"
-              style={{
-                display: "block",
-                marginBottom: 4,
-                fontSize: "0.9rem",
-                fontWeight: 500,
-              }}
-            >
-              Deck
-            </label>
-            <select
-              id="deck"
-              value={deckType}
-              onChange={(e) => setDeckType(e.target.value as DeckType)}
-              style={{
-                width: "100%",
-                minHeight: 44,
-                padding: "12px 16px",
-                fontSize: "1rem",
-                border: "2px solid var(--color-border)",
-                borderRadius: 8,
-                background: "var(--color-surface)",
-                color: "var(--color-text)",
-              }}
-            >
-              {Object.entries(DECKS).map(([key, deck]) => (
-                <option key={key} value={key}>
-                  {key} ({deck.deckValues.join(", ")})
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Deck"
+            value={deckType}
+            onChange={(e) => setDeckType(e.target.value as DeckType)}
+          >
+            {Object.entries(DECKS).map(([key, deck]) => (
+              <option key={key} value={key}>
+                {key} ({deck.deckValues.join(", ")})
+              </option>
+            ))}
+          </Select>
           {error && (
             <p style={{ marginBottom: 16, color: "var(--color-error)", fontSize: "0.9rem" }}>
               {error}
             </p>
           )}
-          <Button type="submit" variant="primary" loading={loading} style={{ width: "100%" }}>
+          <Button type="submit" variant="primary" loading={isLoading} style={{ width: "100%" }}>
             Create room
           </Button>
         </form>
