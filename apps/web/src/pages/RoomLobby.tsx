@@ -1,34 +1,32 @@
 /**
  * Room Lobby — Estimation board.
- * Phase 3: Add item, voting, reveal, re-vote, record final estimate.
+ * Layout: desk/table center, player cards around it, stats sidebar, card deck at bottom.
  * See drivin-design/spec.MD §6, ui-definition.MD §7.3, §7.10.
  */
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
-import type { Room, Participant, Item, Vote, VoteStatistics } from "shared";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import type { Room, Participant, Item, VoteStatistics } from "shared";
 import { RoomState, ParticipantRole, RoundState } from "shared";
 import { roomApi } from "../api";
 import { getStoredParticipant, clearStoredParticipant } from "../storage";
-import { createRoomSocket } from "../api";
-import type { Socket } from "socket.io-client";
+import { useRoomSocket } from "../hooks/useRoomSocket";
+import type { ItemWithRound, RevealedVote } from "../types";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Badge } from "../components/Badge";
-import { Input } from "../components/Input";
-import { Link } from "react-router-dom";
+import { Modal } from "../components/Modal";
+import { Select } from "../components/Select";
+import { ItemFormModal } from "../components/ItemFormModal";
+import "./../styles/RoomLobbyLayout.css";
 
-interface ItemWithRound extends Item {
-  currentRound?: {
-    id: string;
-    state: RoundState;
-    roundNumber: number;
-    votedCount: number;
-  };
-}
-
-interface RevealedVote extends Vote {
-  participantName: string;
+/** Position a point around an ellipse (percent from center) */
+function getEllipsePosition(index: number, total: number): { left: number; top: number } {
+  if (total <= 0) return { left: 50, top: 50 };
+  const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+  const left = 50 + 48 * Math.cos(angle);
+  const top = 50 + 42 * Math.sin(angle);
+  return { left, top };
 }
 
 export function RoomLobby() {
@@ -46,13 +44,11 @@ export function RoomLobby() {
   const [items, setItems] = useState<ItemWithRound[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [, setSocket] = useState<Socket | null>(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // Add/Edit item modal
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [editItem, setEditItem] = useState<Item | null>(null);
   const [itemTitle, setItemTitle] = useState("");
@@ -60,30 +56,51 @@ export function RoomLobby() {
   const [itemFormError, setItemFormError] = useState("");
   const [removeConfirmItem, setRemoveConfirmItem] = useState<Item | null>(null);
 
-  // Revealed state (from WebSocket or after reveal API)
   const [revealedVotes, setRevealedVotes] = useState<RevealedVote[]>([]);
   const [revealedStats, setRevealedStats] = useState<VoteStatistics | null>(null);
   const [revealedItemId, setRevealedItemId] = useState<string | null>(null);
   const [deckDescriptions, setDeckDescriptions] = useState<Record<string, string>>({});
 
-  // My vote (for UI feedback)
   const [myVote, setMyVote] = useState<string | null>(null);
   const [finalEstimate, setFinalEstimate] = useState<string>("");
 
   const shareableLink = id ? `${window.location.origin}/room/${id}` : "";
 
-  const canVote = isFacilitator || participants.some((p) => p.id === participantId && p.role === ParticipantRole.PARTICIPANT);
-  const isObserver = participants.find((p) => p.id === participantId)?.role === ParticipantRole.OBSERVER;
+  const canVote =
+    isFacilitator ||
+    participants.some((p) => p.id === participantId && p.role === ParticipantRole.PARTICIPANT);
+  const isObserver =
+    participants.find((p) => p.id === participantId)?.role === ParticipantRole.OBSERVER;
 
-  const currentItem = items.find((i) => !i.finalEstimate && i.currentRoundId) ?? items.find((i) => !i.finalEstimate);
+  const currentItem =
+    items.find((i) => !i.finalEstimate && i.currentRoundId) ??
+    items.find((i) => !i.finalEstimate);
   const currentRound = currentItem?.currentRound;
   const isVoting = currentRound?.state === RoundState.VOTING;
-  const isRevealed = currentRound?.state === RoundState.REVEALED && revealedItemId === currentItem?.id;
+  const isRevealed =
+    currentRound?.state === RoundState.REVEALED && revealedItemId === currentItem?.id;
 
   const votingCount = currentRound?.votedCount ?? 0;
   const totalVoters = participants.filter(
-    (p) => (p.role === ParticipantRole.PARTICIPANT || p.role === ParticipantRole.FACILITATOR) && p.isActive
+    (p) =>
+      (p.role === ParticipantRole.PARTICIPANT || p.role === ParticipantRole.FACILITATOR) &&
+      p.isActive
   ).length;
+
+  const voters = participants.filter(
+    (p) =>
+      (p.role === ParticipantRole.PARTICIPANT || p.role === ParticipantRole.FACILITATOR) &&
+      p.isActive
+  );
+
+  const voteByParticipant = useMemo(() => {
+    const map = new Map<string, RevealedVote>();
+    revealedVotes.forEach((v) => map.set(v.participantId, v));
+    return map;
+  }, [revealedVotes]);
+
+  const highest = revealedStats?.highest ?? "";
+  const lowest = revealedStats?.lowest ?? "";
 
   async function copyShareLink() {
     if (!shareableLink) return;
@@ -128,7 +145,6 @@ export function RoomLobby() {
     fetchItems();
   }, [fetchItems]);
 
-  // Reset vote/revealed state when switching to a new item (fixes stale state across items)
   useEffect(() => {
     setMyVote(null);
     setRevealedVotes([]);
@@ -137,93 +153,18 @@ export function RoomLobby() {
     setFinalEstimate("");
   }, [currentItem?.id]);
 
-  // WebSocket for real-time updates
-  useEffect(() => {
-    if (!id || !participantId || !room) return;
-    const s = createRoomSocket();
-    s.on("connect", () => {
-      s.emit("joinRoom", { roomId: id, participantId });
-    });
-    s.on("participantJoined", (p: Participant) => {
-      setParticipants((prev) => {
-        if (prev.some((x) => x.id === p.id)) return prev;
-        return [...prev, p].sort((a, b) => a.joinedAt - b.joinedAt);
-      });
-    });
-    s.on("participantLeft", (p: Participant) => {
-      setParticipants((prev) => prev.filter((x) => x.id !== p.id));
-    });
-    s.on("roomClosed", () => {
-      setRoom((prev) => (prev ? { ...prev, state: RoomState.CLOSED } : null));
-    });
-    s.on("itemAdded", () => {
-      setMyVote(null);
-      setRevealedVotes([]);
-      setRevealedStats(null);
-      setRevealedItemId(null);
-      fetchItems();
-    });
-    s.on("itemUpdated", () => fetchItems());
-    s.on("itemRemoved", (payload: { itemId: string }) => {
-      setItems((prev) => prev.filter((i) => i.id !== payload.itemId));
-      setRevealedItemId((prev) => {
-        if (prev === payload.itemId) {
-          setRevealedVotes([]);
-          setRevealedStats(null);
-          return null;
-        }
-        return prev;
-      });
-    });
-    s.on("voteCount", (payload: { itemId: string; votedCount: number; totalCount: number }) => {
-      setItems((prev) =>
-        prev.map((i) => {
-          if (i.id !== payload.itemId || !i.currentRound) return i;
-          return { ...i, currentRound: { ...i.currentRound, votedCount: payload.votedCount } };
-        })
-      );
-    });
-    s.on(
-      "votesRevealed",
-      (payload: {
-        itemId: string;
-        votes: RevealedVote[];
-        statistics: VoteStatistics;
-        deckDescriptions?: Record<string, string>;
-      }) => {
-        setRevealedItemId(payload.itemId);
-        setRevealedVotes(payload.votes);
-        setRevealedStats(payload.statistics);
-        setDeckDescriptions(payload.deckDescriptions ?? {});
-        setItems((prev) =>
-          prev.map((i) => {
-            if (i.id !== payload.itemId || !i.currentRound) return i;
-            return { ...i, currentRound: { ...i.currentRound, state: RoundState.REVEALED } };
-          })
-        );
-      }
-    );
-    s.on("revoteStarted", () => {
-      setRevealedVotes([]);
-      setRevealedStats(null);
-      setRevealedItemId(null);
-      setMyVote(null);
-      fetchItems();
-    });
-    s.on("finalEstimateRecorded", () => {
-      setRevealedVotes([]);
-      setRevealedStats(null);
-      setRevealedItemId(null);
-      setFinalEstimate("");
-      setMyVote(null);
-      fetchItems();
-    });
-    setSocket(s);
-    return () => {
-      s.disconnect();
-      setSocket(null);
-    };
-  }, [id, participantId, room?.id, fetchItems]);
+  useRoomSocket(id, participantId ?? undefined, room, {
+    setParticipants,
+    setRoom,
+    setItems,
+    setRevealedVotes,
+    setRevealedStats,
+    setRevealedItemId,
+    setDeckDescriptions,
+    setMyVote,
+    setFinalEstimate,
+    fetchItems,
+  });
 
   async function handleLeave() {
     if (!id || !participantId) return;
@@ -385,7 +326,7 @@ export function RoomLobby() {
 
   if (loading || !id) {
     return (
-      <div style={{ maxWidth: 600, margin: "0 auto", padding: 24 }}>
+      <div className="room-lobby">
         <p>Loading...</p>
       </div>
     );
@@ -393,7 +334,7 @@ export function RoomLobby() {
 
   if (error && !room) {
     return (
-      <div style={{ maxWidth: 600, margin: "0 auto", padding: 24 }}>
+      <div className="room-lobby">
         <Card>
           <p style={{ color: "var(--color-error)" }}>{error}</p>
           <Link to="/">
@@ -406,7 +347,7 @@ export function RoomLobby() {
 
   if (!participantId) {
     return (
-      <div style={{ maxWidth: 600, margin: "0 auto", padding: 24 }}>
+      <div className="room-lobby">
         <Card>
           <p>You need to join this room first.</p>
           <Link to={`/room/${id}/join`}>
@@ -419,523 +360,420 @@ export function RoomLobby() {
 
   const isClosed = room?.state === RoomState.CLOSED;
 
+  const statsContent = revealedStats && (
+    <>
+      <h3 style={{ fontSize: "0.95rem", margin: "0 0 12px" }}>Statistics</h3>
+      <p style={{ margin: "4px 0", fontSize: "0.9rem" }}>
+        Average: <strong>{revealedStats.average.toFixed(1)}</strong>
+      </p>
+      <p style={{ margin: "4px 0", fontSize: "0.9rem" }}>
+        Median: <strong>{revealedStats.median.toFixed(1)}</strong>
+      </p>
+      <p style={{ margin: "4px 0", fontSize: "0.9rem" }}>
+        Suggested: <strong>{revealedStats.suggestedEstimate}</strong>
+      </p>
+      <p style={{ margin: "8px 0 4px", fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+        Distribution
+      </p>
+      <p style={{ margin: "0", fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+        {Object.entries(revealedStats.voteDistribution)
+          .map(([val, count]) => `${count}× ${val}`)
+          .join(", ")}
+      </p>
+      <p style={{ margin: "8px 0 0", fontSize: "0.85rem" }}>
+        Highest: {revealedStats.highest} · Lowest: {revealedStats.lowest}
+      </p>
+    </>
+  );
+
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: 24 }}>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: "1.5rem", margin: 0 }}>{room?.name ?? "Room"}</h1>
+    <div className="room-lobby">
+      {/* Header: room name top-left */}
+      <header className="room-lobby__header">
+        <div className="room-lobby__header-left">
+          <h1 style={{ fontSize: "1.25rem", margin: 0 }}>{room?.name ?? "Room"}</h1>
           <Badge status={isClosed ? "closed" : "open"} />
         </div>
-        {!isClosed && (
-          <div style={{ display: "flex", gap: 8 }}>
-            {leaveConfirm ? (
-              <>
-                <span style={{ alignSelf: "center", fontSize: "0.9rem" }}>
-                  Leave this room? You will need the link to rejoin.
-                </span>
-                <Button variant="destructive" onClick={handleLeave} loading={actionLoading}>
-                  Leave
-                </Button>
-                <Button variant="secondary" onClick={() => setLeaveConfirm(false)}>
-                  Cancel
-                </Button>
-              </>
-            ) : isFacilitator ? (
-              closeConfirm ? (
+        <div className="room-lobby__header-right">
+          {!isClosed && (
+            <>
+              {leaveConfirm ? (
                 <>
-                  <span style={{ alignSelf: "center", fontSize: "0.9rem" }}>
-                    Close this room? No one will be able to vote after closing.
+                  <span style={{ alignSelf: "center", fontSize: "0.85rem" }}>
+                    Leave? You&apos;ll need the link to rejoin.
                   </span>
-                  <Button variant="destructive" onClick={handleClose} loading={actionLoading}>
-                    Close room
+                  <Button variant="destructive" onClick={handleLeave} loading={actionLoading}>
+                    Leave
                   </Button>
-                  <Button variant="secondary" onClick={() => setCloseConfirm(false)}>
+                  <Button variant="secondary" onClick={() => setLeaveConfirm(false)}>
                     Cancel
                   </Button>
                 </>
+              ) : isFacilitator ? (
+                closeConfirm ? (
+                  <>
+                    <span style={{ alignSelf: "center", fontSize: "0.85rem" }}>
+                      Close room? No votes after closing.
+                    </span>
+                    <Button variant="destructive" onClick={handleClose} loading={actionLoading}>
+                      Close room
+                    </Button>
+                    <Button variant="secondary" onClick={() => setCloseConfirm(false)}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="destructive" onClick={() => setCloseConfirm(true)}>
+                      Close room
+                    </Button>
+                    <Button variant="secondary" onClick={() => setLeaveConfirm(true)}>
+                      Leave
+                    </Button>
+                  </>
+                )
               ) : (
-                <>
-                  <Button variant="destructive" onClick={() => setCloseConfirm(true)}>
-                    Close room
-                  </Button>
-                  <Button variant="secondary" onClick={() => setLeaveConfirm(true)}>
-                    Leave
-                  </Button>
-                </>
-              )
-            ) : (
-              <Button variant="secondary" onClick={() => setLeaveConfirm(true)}>
-                Leave
-              </Button>
-            )}
-          </div>
-        )}
+                <Button variant="secondary" onClick={() => setLeaveConfirm(true)}>
+                  Leave
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </header>
 
-      {error && (
-        <p style={{ color: "var(--color-error)", marginBottom: 16 }}>{error}</p>
-      )}
-
       {isFacilitator && !isClosed && (
-        <Card style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: "1.1rem", margin: "0 0 8px" }}>Share link</h2>
-          <p style={{ color: "var(--color-text-secondary)", margin: "0 0 12px", fontSize: "0.9rem" }}>
-            Share this link with participants so they can join:
-          </p>
-          <div
-            style={{
-              padding: 12,
-              background: "var(--color-bg)",
-              borderRadius: 8,
-              marginBottom: 12,
-              wordBreak: "break-all",
-              fontSize: "0.9rem",
-            }}
-          >
-            {shareableLink}
-          </div>
-          <Button variant="primary" onClick={copyShareLink}>
-            {linkCopied ? "Copied!" : "Copy link"}
+        <div style={{ flexShrink: 0 }}>
+          <Button variant="secondary" onClick={copyShareLink} style={{ fontSize: "0.9rem" }}>
+            {linkCopied ? "Copied!" : "Copy share link"}
           </Button>
-        </Card>
+        </div>
       )}
 
-      {/* Current item */}
-      <Card style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: "1.1rem", margin: "0 0 8px" }}>Current item</h2>
-        {!currentItem ? (
-          <p style={{ color: "var(--color-text-secondary)", margin: "0 0 12px" }}>
-            {items.length === 0 ? "No item yet." : "All items estimated."}
-            {isFacilitator && !isClosed && (
-              <>
-                {" "}
-                <Button variant="primary" onClick={() => { setAddItemOpen(true); setItemTitle(""); setItemDesc(""); setItemFormError(""); }}>
-                  {items.length === 0 ? "Add item" : "Add next item"}
-                </Button>
-              </>
-            )}
-          </p>
-        ) : (
-          <>
-            <div style={{ marginBottom: 8 }}>
-              <strong>{currentItem.title}</strong>
-              {currentItem.description && (
-                <p style={{ color: "var(--color-text-secondary)", margin: "4px 0 0", fontSize: "0.9rem" }}>
-                  {currentItem.description}
-                </p>
-              )}
-            </div>
-            {isFacilitator && !isClosed && isVoting && votingCount === 0 && (
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                <Button variant="secondary" onClick={() => openEditItem(currentItem)}>
-                  Edit
-                </Button>
-                <Button variant="destructive" onClick={() => setRemoveConfirmItem(currentItem)}>
-                  Remove item
-                </Button>
+      {error && (
+        <p style={{ color: "var(--color-error)", margin: 0 }}>{error}</p>
+      )}
+
+      {/* Body: table + sidebar */}
+      <div className="room-lobby__body">
+        <main className="room-lobby__main">
+          {/* Desk/table with player cards around it */}
+          <div className="room-lobby__table" style={{ position: "relative" }}>
+            {/* Player cards around the table */}
+            {currentItem && voters.length > 0 && (
+              <div className="room-lobby__player-cards">
+                {voters.map((p, i) => {
+                  const pos = getEllipsePosition(i, voters.length);
+                  const vote = voteByParticipant.get(p.id);
+                  const isHigh = isRevealed && vote && vote.cardValue === highest;
+                  const isLow = isRevealed && vote && vote.cardValue === lowest;
+                  const displayValue = isRevealed && vote ? vote.cardValue : isVoting ? "?" : "";
+                  return (
+                    <div
+                      key={p.id}
+                      className={`room-lobby__player-card ${
+                        isVoting || (isRevealed && !!vote) ? "room-lobby__player-card--voted" : ""
+                      } ${isHigh ? "room-lobby__player-card--revealed-high" : ""} ${
+                        isLow ? "room-lobby__player-card--revealed-low" : ""
+                      }`}
+                      style={{
+                        left: `${pos.left}%`,
+                        top: `${pos.top}%`,
+                        transform: "translate(-50%, -50%)",
+                      }}
+                      title={p.displayName}
+                    >
+                      {displayValue || (
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            color: "var(--color-text-secondary)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            maxWidth: "100%",
+                          }}
+                        >
+                          {p.displayName.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            {/* Voting */}
-            {isVoting && (
-              <>
-                {isObserver ? (
-                  <p style={{ color: "var(--color-text-secondary)" }}>You are observing; no vote.</p>
-                ) : (
-                  <>
-                    <p style={{ color: "var(--color-text-secondary)", marginBottom: 12 }}>
-                      {votingCount} of {totalVoters} have voted
-                      {myVote && (
-                        <span style={{ display: "block", fontSize: "0.85rem", marginTop: 4 }}>
-                          Tap another card to change your vote
-                        </span>
-                      )}
-                    </p>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 12,
-                        marginBottom: 16,
-                      }}
-                    >
-                      {room?.deckValues.map((val) => (
-                        <button
-                          key={val}
-                          type="button"
-                          onClick={() => handleVote(val)}
-                          style={{
-                            minWidth: 56,
-                            minHeight: 72,
-                            padding: "12px 16px",
-                            borderRadius: 8,
-                            border: myVote === val ? "3px solid var(--color-primary)" : "2px solid var(--color-border)",
-                            background: myVote === val ? "var(--color-surface)" : "var(--color-bg)",
-                            color: "var(--color-text)",
-                            fontSize: "1.25rem",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {val}
-                        </button>
-                      ))}
-                    </div>
-                    {isFacilitator && (
-                      <Button variant="primary" onClick={handleReveal} loading={actionLoading}>
-                        Reveal votes
-                      </Button>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-
-            {/* Revealed */}
-            {isRevealed && (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <h3 style={{ fontSize: "1rem", margin: "0 0 8px" }}>Votes</h3>
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {revealedVotes.map((v) => (
-                      <li
-                        key={v.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          padding: "8px 0",
-                          borderBottom: "1px solid var(--color-border)",
-                        }}
-                      >
-                        <span>{v.participantName}</span>
-                        <span style={{ fontWeight: 600 }}>
-                          {v.cardValue}
-                          {deckDescriptions[v.cardValue] && (
-                            <span style={{ color: "var(--color-text-secondary)", fontWeight: 400, marginLeft: 8 }}>
-                              ({deckDescriptions[v.cardValue]})
-                            </span>
-                          )}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {revealedStats && (
-                  <div style={{ marginBottom: 16, padding: 12, background: "var(--color-bg)", borderRadius: 8 }}>
-                    <h3 style={{ fontSize: "1rem", margin: "0 0 8px" }}>Statistics</h3>
-                    <p style={{ margin: "4px 0" }}>
-                      Average: {revealedStats.average.toFixed(1)} · Median: {revealedStats.median.toFixed(1)}
-                    </p>
-                    <p style={{ margin: "4px 0" }}>
-                      Suggested estimate: <strong>{revealedStats.suggestedEstimate}</strong>
-                    </p>
-                    <p style={{ margin: "4px 0", fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>
-                      Distribution:{" "}
-                      {Object.entries(revealedStats.voteDistribution)
-                        .map(([val, count]) => `${count} voted ${val}`)
-                        .join(", ")}
-                    </p>
-                    <p style={{ margin: "4px 0", fontSize: "0.9rem" }}>
-                      Highest: {revealedStats.highest} · Lowest: {revealedStats.lowest}
-                    </p>
-                  </div>
-                )}
-                {isFacilitator && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    <Button variant="secondary" onClick={handleRevote} loading={actionLoading}>
-                      Re-vote
-                    </Button>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <select
-                        value={finalEstimate || revealedStats?.suggestedEstimate || ""}
-                        onChange={(e) => setFinalEstimate(e.target.value)}
-                        style={{
-                          minHeight: 44,
-                          padding: "8px 12px",
-                          borderRadius: 8,
-                          border: "2px solid var(--color-border)",
-                          background: "var(--color-surface)",
-                          color: "var(--color-text)",
-                        }}
-                      >
-                        <option value="">Select...</option>
-                        {room?.deckValues.map((v) => (
-                          <option key={v} value={v}>
-                            {v}
-                            {v === revealedStats?.suggestedEstimate ? " (suggested)" : ""}
-                          </option>
-                        ))}
-                      </select>
+            {/* Content inside the table */}
+            <div className="room-lobby__table-content">
+              {!currentItem ? (
+                <>
+                  <h2>
+                    {items.length === 0 ? "No item yet" : "All items estimated"}
+                  </h2>
+                  <p>
+                    {isFacilitator && !isClosed && (
                       <Button
                         variant="primary"
-                        onClick={handleRecordFinal}
-                        loading={actionLoading}
-                        disabled={!finalEstimate && !revealedStats?.suggestedEstimate}
+                        onClick={() => {
+                          setAddItemOpen(true);
+                          setItemTitle("");
+                          setItemDesc("");
+                          setItemFormError("");
+                        }}
                       >
-                        Confirm final estimate
+                        {items.length === 0 ? "Add item" : "Add next item"}
                       </Button>
+                    )}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2>{currentItem.title}</h2>
+                  {currentItem.description && (
+                    <p style={{ fontSize: "0.9rem", opacity: 0.9 }}>
+                      {currentItem.description}
+                    </p>
+                  )}
+                  {isVoting && (
+                    <p style={{ marginTop: 12, fontSize: "0.95rem" }}>
+                      {votingCount} of {totalVoters} voted
+                    </p>
+                  )}
+                  {isRevealed && revealedStats && (
+                    <div style={{ marginTop: 12 }}>
+                      <p style={{ fontSize: "1.1rem", fontWeight: 600 }}>
+                        Suggested: {revealedStats.suggestedEstimate}
+                      </p>
                     </div>
-                  </div>
-                )}
-              </>
-            )}
+                  )}
+                  {currentItem.finalEstimate && (
+                    <p style={{ fontSize: "1.1rem", fontWeight: 600 }}>
+                      Final: {currentItem.finalEstimate}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
 
-            {/* Finalized */}
-            {currentItem.finalEstimate && (
-              <p style={{ color: "var(--color-secondary)", fontWeight: 600 }}>
-                Final estimate: {currentItem.finalEstimate}
-              </p>
-            )}
-          </>
-        )}
-      </Card>
-
-      {/* Estimated items list */}
-      {items.filter((i) => i.finalEstimate).length > 0 && (
-        <Card style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: "1.1rem", margin: "0 0 12px" }}>Estimated items</h2>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {items
-              .filter((i) => i.finalEstimate)
-              .map((i) => (
-                <li
-                  key={i.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "12px 0",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  <span>{i.title}</span>
-                  <span
-                    style={{
-                      padding: "4px 12px",
-                      borderRadius: 999,
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      background: "var(--color-secondary)",
-                      color: "#1a1a1a",
-                    }}
-                  >
-                    {i.finalEstimate}
-                  </span>
-                </li>
-              ))}
-          </ul>
-          {isFacilitator && !isClosed && (
-            <Button variant="primary" onClick={() => { setAddItemOpen(true); setItemTitle(""); setItemDesc(""); setItemFormError(""); }} style={{ marginTop: 12 }}>
-              Add next item
-            </Button>
-          )}
-        </Card>
-      )}
-
-      <Card>
-        <h2 style={{ fontSize: "1.1rem", margin: "0 0 12px" }}>
-          Participants ({participants.length})
-        </h2>
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {participants.map((p) => (
-            <li
-              key={p.id}
+          {/* Facilitator actions (reveal, re-vote, finalize) */}
+          {currentItem && isFacilitator && !isClosed && (
+            <div
               style={{
                 display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "12px 0",
-                borderBottom: "1px solid var(--color-border)",
-                minHeight: 44,
+                flexWrap: "wrap",
+                gap: 8,
+                marginTop: 16,
+                justifyContent: "center",
               }}
             >
-              <div
+              {isVoting && (
+                <Button variant="primary" onClick={handleReveal} loading={actionLoading}>
+                  Reveal votes
+                </Button>
+              )}
+              {isVoting && votingCount === 0 && (
+                <>
+                  <Button variant="secondary" onClick={() => openEditItem(currentItem)}>
+                    Edit item
+                  </Button>
+                  <Button variant="destructive" onClick={() => setRemoveConfirmItem(currentItem)}>
+                    Remove item
+                  </Button>
+                </>
+              )}
+              {isRevealed && (
+                <>
+                  <Button variant="secondary" onClick={handleRevote} loading={actionLoading}>
+                    Re-vote
+                  </Button>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <Select
+                      value={finalEstimate || revealedStats?.suggestedEstimate || ""}
+                      onChange={(e) => setFinalEstimate(e.target.value)}
+                      wrapperStyle={{ marginBottom: 0, minWidth: 100 }}
+                    >
+                      <option value="">Select...</option>
+                      {room?.deckValues.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                          {v === revealedStats?.suggestedEstimate ? " (suggested)" : ""}
+                        </option>
+                      ))}
+                    </Select>
+                    <Button
+                      variant="primary"
+                      onClick={handleRecordFinal}
+                      loading={actionLoading}
+                      disabled={!finalEstimate && !revealedStats?.suggestedEstimate}
+                    >
+                      Confirm final
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Mobile: statistics below table */}
+          {statsContent && (
+            <Card className="room-lobby__stats-mobile" style={{ width: "100%", maxWidth: 400 }}>
+              {statsContent}
+            </Card>
+          )}
+        </main>
+
+        {/* Right sidebar: statistics + estimated items (old monitor style) */}
+        <aside className="room-lobby__sidebar">
+          <div className="room-lobby__sidebar-inner">
+            {statsContent}
+            {items.filter((i) => i.finalEstimate).length > 0 ? (
+              <>
+                <h3 style={{ marginTop: statsContent ? 16 : 0 }}>Estimated items</h3>
+                <ul>
+                  {items
+                    .filter((i) => i.finalEstimate)
+                    .map((i) => (
+                      <li key={i.id}>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {i.title}
+                        </span>
+                        <span className="room-lobby__sidebar-estimate">{i.finalEstimate}</span>
+                      </li>
+                    ))}
+                </ul>
+              </>
+            ) : (
+              !statsContent && <p style={{ margin: 0, opacity: 0.5 }}>---</p>
+            )}
+          </div>
+        </aside>
+      </div>
+
+      {/* Bottom: card deck for voting */}
+      {currentItem && isVoting && !isObserver && (
+        <div className="room-lobby__deck">
+          <p style={{ margin: "0 0 8px", fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>
+            Choose a card (tap to change)
+          </p>
+          <div className="room-lobby__deck-inner">
+            {room?.deckValues.map((val) => (
+              <button
+                key={val}
+                type="button"
+                className={`room-lobby__deck-card ${
+                  myVote === val ? "room-lobby__deck-card--selected" : ""
+                }`}
+                onClick={() => handleVote(val)}
+              >
+                {val}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Participants list (compact) */}
+      <Card style={{ flexShrink: 0 }}>
+        <h2 style={{ fontSize: "1rem", margin: "0 0 8px" }}>
+          Participants ({participants.length})
+        </h2>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {participants.map((p) => (
+            <span
+              key={p.id}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 10px",
+                background: "var(--color-bg)",
+                borderRadius: 999,
+                fontSize: "0.9rem",
+              }}
+            >
+              <span
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 24,
+                  height: 24,
                   borderRadius: "50%",
                   background: "var(--color-primary)",
                   color: "var(--color-primary-text)",
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontWeight: 600,
-                  fontSize: "1rem",
+                  fontSize: "0.75rem",
                 }}
               >
                 {p.displayName.charAt(0).toUpperCase()}
-              </div>
-              <span>
-                {p.displayName}
-                {p.role === ParticipantRole.FACILITATOR && (
-                  <span style={{ color: "var(--color-secondary)", marginLeft: 8 }}>(facilitator)</span>
-                )}
-                {p.role === ParticipantRole.OBSERVER && (
-                  <span style={{ color: "var(--color-text-secondary)", marginLeft: 8 }}>
-                    (observer)
-                  </span>
-                )}
               </span>
-            </li>
+              {p.displayName}
+              {p.role === ParticipantRole.FACILITATOR && (
+                <span style={{ color: "var(--color-secondary)", fontSize: "0.8rem" }}>host</span>
+              )}
+              {p.role === ParticipantRole.OBSERVER && (
+                <span style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>
+                  obs
+                </span>
+              )}
+            </span>
           ))}
-        </ul>
+        </div>
       </Card>
 
-      {/* Add item modal */}
       {addItemOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: 24,
+        <ItemFormModal
+          title="Add item"
+          itemTitle={itemTitle}
+          itemDesc={itemDesc}
+          error={itemFormError}
+          onTitleChange={setItemTitle}
+          onDescChange={setItemDesc}
+          onSubmit={handleAddItem}
+          onCancel={() => {
+            setAddItemOpen(false);
+            setItemTitle("");
+            setItemDesc("");
+            setItemFormError("");
           }}
-          onClick={() => setAddItemOpen(false)}
-        >
-          <Card
-            style={{ maxWidth: 400, width: "100%" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ margin: "0 0 16px" }}>Add item</h2>
-            <Input
-              label="Title"
-              value={itemTitle}
-              onChange={(e) => setItemTitle(e.target.value)}
-              placeholder="Item title"
-              error={itemFormError}
-            />
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", marginBottom: 4, fontSize: "0.9rem" }}>Description (optional)</label>
-              <textarea
-                value={itemDesc}
-                onChange={(e) => setItemDesc(e.target.value)}
-                placeholder="Description"
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  borderRadius: 8,
-                  border: "2px solid var(--color-border)",
-                  background: "var(--color-surface)",
-                  color: "var(--color-text)",
-                  fontSize: "1rem",
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button variant="primary" onClick={handleAddItem} loading={actionLoading}>
-                Save
-              </Button>
-              <Button variant="secondary" onClick={() => setAddItemOpen(false)}>
-                Cancel
-              </Button>
-            </div>
-          </Card>
-        </div>
+          isLoading={actionLoading}
+        />
       )}
 
-      {/* Edit item modal */}
       {editItem && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: 24,
+        <ItemFormModal
+          title="Edit item"
+          itemTitle={itemTitle}
+          itemDesc={itemDesc}
+          error={itemFormError}
+          onTitleChange={setItemTitle}
+          onDescChange={setItemDesc}
+          onSubmit={handleUpdateItem}
+          onCancel={() => {
+            setEditItem(null);
+            setItemTitle("");
+            setItemDesc("");
+            setItemFormError("");
           }}
-          onClick={() => setEditItem(null)}
-        >
-          <Card
-            style={{ maxWidth: 400, width: "100%" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ margin: "0 0 16px" }}>Edit item</h2>
-            <Input
-              label="Title"
-              value={itemTitle}
-              onChange={(e) => setItemTitle(e.target.value)}
-              placeholder="Item title"
-              error={itemFormError}
-            />
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", marginBottom: 4, fontSize: "0.9rem" }}>Description (optional)</label>
-              <textarea
-                value={itemDesc}
-                onChange={(e) => setItemDesc(e.target.value)}
-                placeholder="Description"
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  borderRadius: 8,
-                  border: "2px solid var(--color-border)",
-                  background: "var(--color-surface)",
-                  color: "var(--color-text)",
-                  fontSize: "1rem",
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button variant="primary" onClick={handleUpdateItem} loading={actionLoading}>
-                Save
-              </Button>
-              <Button variant="secondary" onClick={() => setEditItem(null)}>
-                Cancel
-              </Button>
-            </div>
-          </Card>
-        </div>
+          isLoading={actionLoading}
+        />
       )}
 
-      {/* Remove confirmation */}
       {removeConfirmItem && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: 24,
-          }}
-          onClick={() => setRemoveConfirmItem(null)}
-        >
-          <Card
-            style={{ maxWidth: 400, width: "100%" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ margin: "0 0 16px" }}>Remove item</h2>
-            <p style={{ marginBottom: 16 }}>
-              Remove &quot;{removeConfirmItem.title}&quot;? This cannot be undone.
-            </p>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button variant="destructive" onClick={handleRemoveItem} loading={actionLoading}>
-                Remove
-              </Button>
-              <Button variant="secondary" onClick={() => setRemoveConfirmItem(null)}>
-                Cancel
-              </Button>
-            </div>
-          </Card>
-        </div>
+        <Modal onClose={() => setRemoveConfirmItem(null)}>
+          <h2 style={{ margin: "0 0 16px" }}>Remove item</h2>
+          <p style={{ marginBottom: 16 }}>
+            Remove &quot;{removeConfirmItem.title}&quot;? This cannot be undone.
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button variant="destructive" onClick={handleRemoveItem} loading={actionLoading}>
+              Remove
+            </Button>
+            <Button variant="secondary" onClick={() => setRemoveConfirmItem(null)}>
+              Cancel
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

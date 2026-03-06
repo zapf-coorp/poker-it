@@ -1,0 +1,299 @@
+/**
+ * Room Lobby — Desk/table layout.
+ * Responsive: mobile → tablet → desktop.
+ * See drivin-design/ui-definition.MD §3, §5, §7.3.
+ */
+
+.room-lobby {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px;
+  gap: 16px;
+}
+
+/* Header: room name top-left */
+.room-lobby__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.room-lobby__header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-lobby__header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Main content + sidebar */
+.room-lobby__body {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* Center: table area */
+.room-lobby__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Desk/table visual */
+.room-lobby__table {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 16 / 10;
+  min-height: 140px;
+  background: linear-gradient(145deg, #0a5a0a 0%, #0d6b0d 50%, #0a5a0a 100%);
+  border-radius: 50% / 45%;
+  box-shadow:
+    inset 0 4px 20px rgba(0, 0, 0, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    0 0 0 12px #5c4033,
+    0 0 0 16px #8b6914;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+[data-theme="dark"] .room-lobby__table {
+  background: linear-gradient(145deg, #0a4d0a 0%, #0d5d0d 50%, #0a4d0a 100%);
+  box-shadow:
+    inset 0 4px 20px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 0 12px #3d2b24,
+    0 0 0 16px #6b5014;
+}
+
+@media (prefers-color-scheme: dark) {
+  .room-lobby__table {
+    background: linear-gradient(145deg, #0a4d0a 0%, #0d5d0d 50%, #0a4d0a 100%);
+    box-shadow:
+      inset 0 4px 20px rgba(0, 0, 0, 0.4),
+      0 8px 24px rgba(0, 0, 0, 0.3),
+      0 0 0 12px #3d2b24,
+      0 0 0 16px #6b5014;
+  }
+}
+
+/* Content inside the table */
+.room-lobby__table-content {
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  max-width: 100%;
+}
+
+.room-lobby__table-content h2 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.room-lobby__table-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.95;
+}
+
+/* Player cards around the table */
+.room-lobby__player-cards {
+  position: absolute;
+  inset: -8px;
+  pointer-events: none;
+}
+
+.room-lobby__player-card {
+  position: absolute;
+  width: 40px;
+  height: 54px;
+  min-width: 40px;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text);
+  pointer-events: auto;
+  transition: transform 0.15s ease;
+}
+
+.room-lobby__player-card--voted {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.room-lobby__player-card--revealed-high {
+  border-color: var(--color-secondary);
+  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(201, 162, 39, 0.15) 100%);
+}
+
+.room-lobby__player-card--revealed-low {
+  border-color: var(--color-error);
+  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(185, 28, 28, 0.08) 100%);
+}
+
+/* Right sidebar: old monitor style */
+.room-lobby__sidebar {
+  display: none;
+  flex-shrink: 0;
+  width: 260px;
+}
+
+@media (min-width: 900px) {
+  .room-lobby__sidebar {
+    display: block;
+  }
+}
+
+/* Old CRT monitor aesthetic */
+.room-lobby__sidebar-inner {
+  position: sticky;
+  top: 16px;
+  background: #0d0d0d;
+  border: 12px solid #3a3632;
+  border-radius: 4px;
+  padding: 12px 14px;
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.8),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 0 2px #2a2622;
+  font-family: "Courier New", "Consolas", monospace;
+  color: #33ff33;
+  text-shadow: 0 0 4px rgba(51, 255, 51, 0.5);
+}
+
+.room-lobby__sidebar-inner h3 {
+  color: #33ff33;
+  font-size: 0.85rem;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.room-lobby__sidebar-inner p,
+.room-lobby__sidebar-inner li {
+  color: #33ff33;
+  font-size: 0.8rem;
+  margin: 4px 0;
+}
+
+.room-lobby__sidebar-inner ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.room-lobby__sidebar-inner li {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(51, 255, 51, 0.2);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-lobby__sidebar-inner .room-lobby__sidebar-estimate {
+  color: #ffb000;
+  font-weight: 700;
+}
+
+/* Bottom: card deck */
+.room-lobby__deck {
+  flex-shrink: 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.room-lobby__deck-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.room-lobby__deck-card {
+  min-width: 52px;
+  min-height: 72px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 1.15rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.room-lobby__deck-card:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.room-lobby__deck-card:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.room-lobby__deck-card--selected {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+/* Mobile: sidebar as collapsible or below table */
+.room-lobby__stats-mobile {
+  display: block;
+  margin-top: 12px;
+}
+
+@media (min-width: 900px) {
+  .room-lobby__stats-mobile {
+    display: none;
+  }
+}
+
+/* Tablet: slightly larger player cards */
+@media (min-width: 600px) {
+  .room-lobby__player-card {
+    width: 44px;
+    height: 60px;
+    min-width: 44px;
+    min-height: 60px;
+    font-size: 1rem;
+  }
+}
+
+/* Large desktop */
+@media (min-width: 1200px) {
+  .room-lobby {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .room-lobby__table {
+    max-width: 380px;
+  }
+}

@@ -1,62 +1,37 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ParticipantRole } from "shared";
-import { roomApi } from "../api";
-import type { Room } from "shared";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
-import { setStoredParticipant } from "../storage";
+import { useJoinRoom } from "../hooks/useJoinRoom";
+
+const pageStyles: React.CSSProperties = {
+  maxWidth: 400,
+  margin: "0 auto",
+  padding: 24,
+};
+
+const errorStyles: React.CSSProperties = {
+  marginBottom: 16,
+  color: "var(--color-error)",
+  fontSize: "0.9rem",
+};
 
 export function JoinRoom() {
   const { id } = useParams<{ id: string }>();
-  const [room, setRoom] = useState<Room | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [roomError, setRoomError] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [joinAsObserver, setJoinAsObserver] = useState(false);
-  const [joinLoading, setJoinLoading] = useState(false);
-  const [joinError, setJoinError] = useState("");
-
-  useEffect(() => {
-    if (!id) {
-      setRoomError("Room ID missing");
-      setLoading(false);
-      return;
-    }
-    roomApi
-      .getRoom(id)
-      .then(setRoom)
-      .catch((err) => {
-        setRoomError(err instanceof Error ? err.message : "Room not found");
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { room, isLoading, roomError, joinRoom, joinLoading, joinError } = useJoinRoom(id);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!id || !displayName.trim()) return;
-    setJoinError("");
-    setJoinLoading(true);
-    try {
-      const res = await roomApi.joinRoom(
-        id,
-        displayName.trim(),
-        joinAsObserver ? ParticipantRole.OBSERVER : ParticipantRole.PARTICIPANT
-      );
-      setStoredParticipant(id, res.participant.id, res.participant.role === ParticipantRole.FACILITATOR);
-      // Full navigation ensures RoomRoute re-evaluates and shows RoomLobby
-      window.location.assign(`${window.location.origin}/room/${id}`);
-    } catch (err) {
-      setJoinError(err instanceof Error ? err.message : "Failed to join");
-    } finally {
-      setJoinLoading(false);
-    }
+    await joinRoom(displayName, joinAsObserver);
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div style={{ maxWidth: 400, margin: "0 auto", padding: 24 }}>
+      <div style={pageStyles}>
         <p>Loading room...</p>
       </div>
     );
@@ -64,7 +39,7 @@ export function JoinRoom() {
 
   if (roomError || !room) {
     return (
-      <div style={{ maxWidth: 400, margin: "0 auto", padding: 24 }}>
+      <div style={pageStyles}>
         <Card>
           <p style={{ color: "var(--color-error)", marginBottom: 16 }}>
             {roomError || "Room not found"}
@@ -79,7 +54,7 @@ export function JoinRoom() {
 
   if (room.state === "CLOSED") {
     return (
-      <div style={{ maxWidth: 400, margin: "0 auto", padding: 24 }}>
+      <div style={pageStyles}>
         <Card>
           <p style={{ color: "var(--color-error)", marginBottom: 16 }}>
             This room is closed. No one can join.
@@ -93,10 +68,8 @@ export function JoinRoom() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: "0 auto", padding: 24 }}>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: 8 }}>
-        Join {room.name}
-      </h1>
+    <div style={pageStyles}>
+      <h1 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Join {room.name}</h1>
       <Card>
         <form onSubmit={handleSubmit}>
           <Input
@@ -126,11 +99,7 @@ export function JoinRoom() {
               <span>Join as observer (read-only)</span>
             </label>
           </div>
-          {joinError && (
-            <p style={{ marginBottom: 16, color: "var(--color-error)", fontSize: "0.9rem" }}>
-              {joinError}
-            </p>
-          )}
+          {joinError && <p style={errorStyles}>{joinError}</p>}
           <Button
             type="submit"
             variant="primary"
