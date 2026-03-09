@@ -21,7 +21,7 @@ export function HomeScreen({ navigation }: Props) {
       <Text style={styles.hint}>Or join via a shared link.</Text>
       <Text style={styles.apiHint}>
         API: {apiUrl}{"\n"}
-        (Dispositivo físico? Use EXPO_PUBLIC_API_URL=http://SEU_IP:3000)
+        (Dispositivo físico? Use EXPO_PUBLIC_API_URL=http://SEU_IP:3033)
       </Text>
     </View>
   );

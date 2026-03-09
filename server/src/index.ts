@@ -39,7 +39,7 @@ import {
 
 const app = express();
 const parsedPort = parseInt(process.env.PORT ?? "", 10);
-const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
+const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3033;
 
 app.use(express.json());
 

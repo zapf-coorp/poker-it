@@ -28,9 +28,12 @@ Build the shared package once before running web or mobile.
 
 | App | Command |
 |-----|---------|
-| Web (Vite) | `npm run dev -w web` |
+| **Web + Server** (recomendado para dev local) | `npm run dev` |
+| Web (Vite) | `npm run dev:web` |
+| Server | `npm run dev:server` |
 | Mobile (Expo) | `npm run start -w mobile` |
-| Server | `npm run dev -w server` |
+
+**Importante:** Para criar salas e usar a API, o servidor precisa estar rodando. Use `npm run dev` para iniciar web e servidor juntos.
 
 ### Typecheck
 
@@ -53,17 +56,17 @@ poker-plan-it/
 
 ## Environment
 
-- **Web:** `VITE_API_URL` — API base URL (default: `http://localhost:3000`)
+- **Web:** `VITE_API_URL` — API base URL (default: `http://localhost:3033`)
 - **Mobile:** `EXPO_PUBLIC_API_URL` — API base URL
-  - **Emulador Android:** `http://10.0.2.2:3000` (padrão)
-  - **Simulador iOS:** `http://localhost:3000` (padrão)
-  - **Dispositivo físico:** Use o IP do seu PC na mesma rede, ex: `http://192.168.1.100:3000`
+  - **Emulador Android:** `http://10.0.2.2:3033` (padrão)
+  - **Simulador iOS:** `http://localhost:3033` (padrão)
+  - **Dispositivo físico:** Use o IP do seu PC na mesma rede, ex: `http://192.168.1.100:3033`
     ```bash
     # Windows (PowerShell)
-    $env:EXPO_PUBLIC_API_URL="http://192.168.1.100:3000"; npm run start -w mobile
+    $env:EXPO_PUBLIC_API_URL="http://192.168.1.100:3033"; npm run start -w mobile
     ```
     Descubra seu IP com `ipconfig` (Windows) ou `ifconfig` (Mac/Linux).
-- **Server:** `PORT` — Server port (default: `3000`)
+- **Server:** `PORT` — Server port (default: `3033`)
 
 **Importante:** O servidor deve estar rodando (`npm run dev -w server`) antes de usar o app mobile.
 
@@ -71,16 +74,16 @@ poker-plan-it/
 
 Para compartilhar com amigos usando **apenas um túnel Ngrok**:
 
-1. **Build e serve** (web + API no mesmo processo, porta 3000):
+1. **Build e serve** (web + API no mesmo processo, porta 3033):
    ```bash
    npm run serve
    ```
 
 2. **Exponha com Ngrok:**
    ```bash
-   ngrok http 3000
+   ngrok http 3033
    ```
 
 3. **Compartilhe a URL** do Ngrok com os amigos (ex: `https://xxx.ngrok-free.app`).
 
-O comando `serve` faz build do web app (com API em same-origin), build do server e inicia tudo na porta 3000. O Ngrok expõe essa porta — web e API funcionam pela mesma URL.
+O comando `serve` faz build do web app (com API em same-origin), build do server e inicia tudo na porta 3033. O Ngrok expõe essa porta — web e API funcionam pela mesma URL.

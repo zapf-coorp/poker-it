@@ -7,7 +7,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { createRoomApi } from "../src/room-api.js";
 
 describe("Phase 3 — Estimation API client", () => {
-  const baseUrl = "http://localhost:3000";
+  const baseUrl = "http://localhost:3033";
 
   afterEach(() => {
     vi.unstubAllGlobals();

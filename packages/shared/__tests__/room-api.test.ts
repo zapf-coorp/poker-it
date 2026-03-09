@@ -8,7 +8,7 @@ import { createRoomApi } from "../src/room-api.js";
 import { DeckType, ParticipantRole, RoomState } from "../src/types.js";
 
 describe("Phase 2 — Room API client", () => {
-  const baseUrl = "http://localhost:3000";
+  const baseUrl = "http://localhost:3033";
 
   afterEach(() => {
     vi.unstubAllGlobals();

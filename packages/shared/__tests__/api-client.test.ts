@@ -13,7 +13,7 @@ describe("Phase 1 — API client", () => {
 
   describe("createHttpClient", () => {
     it("returns an object with get, post, patch, delete methods", () => {
-      const client = createHttpClient("http://localhost:3000");
+      const client = createHttpClient("http://localhost:3033");
       expect(typeof client.get).toBe("function");
       expect(typeof client.post).toBe("function");
       expect(typeof client.patch).toBe("function");
@@ -21,7 +21,7 @@ describe("Phase 1 — API client", () => {
     });
 
     it("get: appends path to base URL and returns parsed JSON on success", async () => {
-      const client = createHttpClient("http://localhost:3000");
+      const client = createHttpClient("http://localhost:3033");
       const mockData = { status: "ok" };
       vi.stubGlobal(
         "fetch",
@@ -33,11 +33,11 @@ describe("Phase 1 — API client", () => {
 
       const result = await client.get<{ status: string }>("/health");
       expect(result).toEqual(mockData);
-      expect(fetch).toHaveBeenCalledWith("http://localhost:3000/health", expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith("http://localhost:3033/health", expect.any(Object));
     });
 
     it("get: throws on non-ok response", async () => {
-      const client = createHttpClient("http://localhost:3000");
+      const client = createHttpClient("http://localhost:3033");
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue({
@@ -51,7 +51,7 @@ describe("Phase 1 — API client", () => {
     });
 
     it("post: sends JSON body and returns parsed response", async () => {
-      const client = createHttpClient("http://localhost:3000");
+      const client = createHttpClient("http://localhost:3033");
       const body = { name: "Test" };
       const mockResponse = { id: "123" };
       const mockFetch = vi.fn().mockResolvedValue({
@@ -63,7 +63,7 @@ describe("Phase 1 — API client", () => {
       const result = await client.post<{ id: string }>("/api/rooms", body);
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3000/api/rooms",
+        "http://localhost:3033/api/rooms",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -84,7 +84,7 @@ describe("Phase 1 — API client", () => {
         // Node without WebSocket polyfill — skip URL assertion
         return;
       }
-      const ws = createWebSocket("http://localhost:3000", "/ws");
+      const ws = createWebSocket("http://localhost:3033", "/ws");
       expect(ws).toBeDefined();
       expect((ws as WebSocket & { url?: string }).url).toContain("ws://");
     });

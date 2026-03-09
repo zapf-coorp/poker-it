@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
+import { useAuthContext } from "../context/AuthContext";
 
 function extractRoomId(input: string): string | null {
   const trimmed = input.trim();
@@ -13,6 +14,7 @@ function extractRoomId(input: string): string | null {
 
 export function Home() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthContext();
   const [roomInput, setRoomInput] = useState("");
 
   function handleJoinRoom(e: React.FormEvent) {
@@ -30,11 +32,19 @@ export function Home() {
         Planning Poker for agile teams.
       </p>
       <Card>
-        <Link to="/create" style={{ textDecoration: "none" }}>
-          <Button variant="primary" style={{ width: "100%" }}>
-            Create a room
-          </Button>
-        </Link>
+        {isAuthenticated ? (
+          <Link to="/create" style={{ textDecoration: "none" }}>
+            <Button variant="primary" style={{ width: "100%" }}>
+              Create a room
+            </Button>
+          </Link>
+        ) : (
+          <Link to="/login" state={{ from: { pathname: "/create" } }} style={{ textDecoration: "none" }}>
+            <Button variant="primary" style={{ width: "100%" }}>
+              Create a room
+            </Button>
+          </Link>
+        )}
         <form onSubmit={handleJoinRoom} style={{ marginTop: 16 }}>
           <Input
             label="Or paste room link / ID"

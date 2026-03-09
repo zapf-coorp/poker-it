@@ -6,4 +6,4 @@ tunnels:
     addr: 5173
   api:
     proto: http
-    addr: 3000
+    addr: 3033

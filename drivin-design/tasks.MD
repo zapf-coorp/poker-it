@@ -4,6 +4,8 @@ This file lists **implementation tasks** derived from the spec-driven workflow (
 
 **Current focus:** Web app + server only. Mobile tasks (Phase 2.8, etc.) are **deferred** until the web MVP is complete. Server uses in-memory / mocked data.
 
+**Use case reference:** All tasks map to the detailed use cases in `spec.MD` §15 (Detailed Use Cases). The checklist at the end tracks coverage of each use case.
+
 ---
 
 ## Phase 1: Create and Configure the Architecture
@@ -148,10 +150,11 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 | ID    | Task                                     | Acceptance criteria                                                                                                                                                      | Ref                |
 | ----- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
 | 2.2.1 | `POST /api/rooms` — Create room          | Accept `{ name, deckType }`; validate; create room + facilitator + session; return `{ room, participant, shareableLink }`.                                               | spec.MD §5.1       |
-| 2.2.2 | `GET /api/rooms/:id` — Get room          | Return room by ID; 404 if not found or closed (or allow read for closed). Include deckValues, state, name.                                                               | spec.MD §5.2       |
-| 2.2.3 | `POST /api/rooms/:id/join` — Join room   | Accept `{ displayName, role? }`; validate name; create participant; return `{ participant, room }`. Reject if room closed. Role defaults to PARTICIPANT; allow OBSERVER. | spec.MD §5.2, §5.5 |
-| 2.2.4 | `POST /api/rooms/:id/leave` — Leave room | Accept `{ participantId }`; set participant `isActive=false`, `leftAt=now`; return success. Idempotent if already left.                                                  | spec.MD §5.4       |
-| 2.2.5 | `POST /api/rooms/:id/close` — Close room | Accept `{ participantId }`; verify participant is facilitator; set room `state=CLOSED`, `closedAt=now`; update session; return success. Reject if not facilitator.       | spec.MD §5.3       |
+| 2.2.2 | `GET /api/rooms/:id` — Get room          | Return room by ID; 404 if not found. Include deckValues, state, name. For closed rooms: return room with `state=CLOSED` so client can show summary (UC-5.2, UC-15.7).       | spec.MD §5.2, §15  |
+| 2.2.3 | `POST /api/rooms/:id/join` — Join room   | Accept `{ displayName, role? }`; validate name; reject if display name already in use (409 or 400 with clear message); reject if room closed. Role defaults to PARTICIPANT; allow OBSERVER. | spec.MD §5.2, §5.5, UC-5.2 |
+| 2.2.4 | `POST /api/rooms/:id/leave` — Leave room | Accept `{ participantId }`; set participant `isActive=false`, `leftAt=now`. If participant is facilitator: auto-close room (see 2.2.6). Return success. Idempotent if already left. | spec.MD §5.4, §15.2 |
+| 2.2.5 | `POST /api/rooms/:id/close` — Close room | Accept `{ participantId }`; verify participant is facilitator; set room `state=CLOSED`, `closedAt=now`; update session; return success + session summary (items, final estimates). Reject if not facilitator. | spec.MD §5.3, UC-5.3 |
+| 2.2.6 | Facilitator leaves → auto-close room    | When facilitator leaves without closing: treat as room close; broadcast `roomClosed`; same flow as close. (MVP: spec §15.2 UC-5.4 recommends option B.)                    | spec.MD §15.2 UC-5.4 |
 
 
 ---
@@ -163,8 +166,9 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 | ----- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | 2.3.1 | Add WebSocket server         | Socket.io or native WS; accept connections; associate socket with room + participant (via join token or session).                            | quickstart.MD §1   |
 | 2.3.2 | Emit participant joined/left | When participant joins or leaves, broadcast to room: `participantJoined`, `participantLeft` with participant info. Clients see updated list. | spec.MD §5.2, §5.4 |
-| 2.3.3 | Emit room closed             | When facilitator closes room, broadcast `roomClosed` to all in room. Clients can show read-only state.                                       | spec.MD §5.3       |
+| 2.3.3 | Emit room closed             | When facilitator closes room, broadcast `roomClosed` with session summary (items, final estimates) to all in room. Clients show read-only + exit options. | spec.MD §5.3, UC-15.3 |
 | 2.3.4 | Handle disconnect            | On socket disconnect, mark participant `isActive=false`, `leftAt=now`; broadcast `participantLeft`.                                          | spec.MD §5.4, NFRs |
+| 2.3.5 | Room state on reconnect      | When client reconnects, return current room state (open/closed). If closed, include summary. Client must never show stale voting UI for closed room. | spec.MD §15.7 UC-15.7 |
 
 
 ---
@@ -190,7 +194,7 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 | ID    | Task                              | Acceptance criteria                                                                                                                                             | Ref                     |
 | ----- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
 | 2.5.1 | Create Room form                  | Screen "Create room" with: room name (required), deck selector (Fibonacci, Linear 0–10, T-shirt), "Create room" button. Use component system (inputs, buttons). | ui-definition.MD §7.2   |
-| 2.5.2 | Call createRoom API               | On submit, call shared `createRoom`; show loading state; handle validation and errors.                                                                          | spec.MD §5.1            |
+| 2.5.2 | Call createRoom API               | On submit, call shared `createRoom`; show loading state. Handle: validation (empty name, max length) → inline validation; creation fails → "Unable to create room. Please try again." with retry; preserve form data. | spec.MD §5.1, UC-5.1 |
 | 2.5.3 | Success state with shareable link | After success: show "Room created", shareable link, "Copy link" button (one-click copy to clipboard). Optional "Open room" to navigate to room.                 | spec.MD §5.1            |
 | 2.5.4 | Theme and responsive              | Light/dark theme; mobile-first; touch targets ≥ 44 px; keyboard submit.                                                                                         | ui-definition.MD §5, §6 |
 
@@ -203,9 +207,10 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 | ID    | Task                        | Acceptance criteria                                                                                                                                                    | Ref                   |
 | ----- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
 | 2.6.1 | Join by link screen         | When user opens `/room/:id` (or similar): show "Join [Room name]" or "Join planning session"; form: display name (required), "Join as observer" toggle, "Join" button. | ui-definition.MD §7.1 |
-| 2.6.2 | Fetch room before join      | Load room via `getRoom`; show room name; handle 404 (room not found) and closed room with message + "Create room instead" link.                                        | spec.MD §5.2          |
-| 2.6.3 | Call joinRoom API           | On submit, call `joinRoom(roomId, displayName, role)`; role = OBSERVER if toggle on, else PARTICIPANT. Show loading; handle errors.                                    | spec.MD §5.2, §5.5    |
+| 2.6.2 | Fetch room before join      | Load room via `getRoom`; show room name. Handle: 404 → "Room not found. Please check the link." + link to create room; closed → "This session has ended." + optional read-only summary link. Never dead end. | spec.MD §5.2, UC-5.2 |
+| 2.6.3 | Call joinRoom API           | On submit, call `joinRoom(roomId, displayName, role)`; role = OBSERVER if toggle on, else PARTICIPANT. Show loading. Handle: name in use → "This name is already in use. Please choose another."; preserve form. | spec.MD §5.2, §5.5, UC-5.2 |
 | 2.6.4 | Navigate to room on success | After join, navigate to room lobby; persist participant ID (e.g. in state or storage) for leave/close.                                                                 | spec.MD §5.2          |
+| 2.6.5 | Connection lost during join | If join fails due to network: show "Connection lost. Please try again." with retry. Preserve entered display name if possible.                                          | spec.MD §15.2 UC-5.2  |
 
 
 ---
@@ -217,10 +222,12 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 | ----- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
 | 2.7.1 | Room lobby layout                       | Header: room name, badge (Open/Closed). Section: participant list (avatars/names, "N participants"). For Phase 2: no items yet; show "No item yet" placeholder. | ui-definition.MD §7.3               |
 | 2.7.2 | Participant list with real-time updates | Display active participants; connect WebSocket; update list on `participantJoined`, `participantLeft`. Observers shown with "(observer)" label.                 | spec.MD §5.2, §5.5                  |
-| 2.7.3 | Leave room (participant)                | "Leave" button; confirmation: "Leave this room? You will need the link to rejoin." Destructive "Leave" + "Cancel". Call `leaveRoom`; navigate away.             | spec.MD §5.4, ui-definition.MD §7.9 |
-| 2.7.4 | Close room (facilitator)                | "Close room" button (facilitator only); confirmation: "Close this room? No one will be able to vote after closing." Call `closeRoom`; show read-only state.     | spec.MD §5.3, ui-definition.MD §7.9 |
-| 2.7.5 | Handle room closed event                | On WebSocket `roomClosed`, update UI to read-only; hide vote/close actions; show "Session ended" or similar.                                                    | spec.MD §5.3                        |
-| 2.7.6 | Role-based UI                           | Facilitator sees "Close room"; participant/observer see "Leave". Observer sees same layout but no vote controls (none in Phase 2).                              | spec.MD §5.3, §5.4, §5.5            |
+| 2.7.3 | Leave room (participant)                | "Leave" button; optional confirmation: "Leave this session?" Call `leaveRoom`; redirect to clear destination (home, Create Room, or Join Room) — never blank/broken view. | spec.MD §5.4, UC-5.4, ui-definition.MD §7.9 |
+| 2.7.4 | Close room (facilitator)                | "Close room" button (facilitator only); confirmation: "Close this session? No further votes can be cast." If items have no final estimate: warn "X item(s) have no final estimate. Close anyway?" Call `closeRoom`; broadcast summary. | spec.MD §5.3, UC-5.3, ui-definition.MD §7.9 |
+| 2.7.5 | Handle room closed event (dead-end prevention) | On WebSocket `roomClosed`: immediately disable voting; show prominent "This session has ended."; display session summary (items, final estimates); show "Return to Home" and "Create New Room" buttons. No user left in active voting view. | spec.MD §5.3, UC-15.3 |
+| 2.7.6 | Room closed — polling fallback          | If WebSocket unavailable: poll `GET /api/rooms/:id` periodically; when `state=CLOSED`, show same summary + exit options. Mitigate long delays with "Session may have ended?" + refresh. | spec.MD §15.3 |
+| 2.7.7 | Room closed — on page refresh           | On load/reconnect: fetch room state; if closed, show summary view directly (not voting view). Never show stale "voting in progress" for closed room.           | spec.MD §15.7 UC-15.7 |
+| 2.7.8 | Role-based UI                           | Facilitator sees "Close room"; participant/observer see "Leave". Observer sees same layout but no vote controls (none in Phase 2).                              | spec.MD §5.3, §5.4, §5.5            |
 
 
 ---
@@ -253,12 +260,14 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 
 Before moving to Phase 3 (Estimation Process):
 
-- Facilitator can create room with name and deck; gets shareable link; can copy link (one-click).
-- Participant can join via link with display name; sees participant list; can view room.
+- Facilitator can create room with name and deck; gets shareable link; can copy link (one-click). Creation failure shows retry; form data preserved.
+- Participant can join via link with display name; sees participant list; can view room. Room not found / closed / name in use show clear messages; no dead ends.
 - Participant can choose "Join as observer"; observer sees room but cannot vote; observer appears in list.
-- Participant can leave room; confirmation shown; after leave, no longer in list; others see update.
-- Facilitator can close room; confirmation shown; after close, no votes possible; session history viewable.
-- Real-time: participant list updates when others join/leave; room closed event propagates.
+- Participant can leave room; redirects to home/create/join — never blank view. Others see update.
+- Facilitator can close room; all participants receive room-closed event; see "Session ended" + summary + "Return to Home" | "Create New Room". No user stuck in voting view.
+- Facilitator leaves without closing → room auto-closes; same notification flow.
+- On refresh/reconnect: if room closed, show summary view directly (not voting).
+- Real-time: participant list updates; room closed propagates; polling fallback if WebSocket unavailable.
 - Web supports create, join, lobby, leave, close flows. (Mobile deferred.)
 - All UI follows ui-definition.MD (themes, touch targets, confirmations).
 
@@ -337,7 +346,7 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 | ID    | Task                            | Acceptance criteria                                                                                    | Ref                     |
 | ----- | ------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------- |
 | 3.5.1 | Add item form (modal or inline) | Form: title (required), description (optional); "Save" and "Cancel". "Add item" button triggers form.  | ui-definition.MD §7.4   |
-| 3.5.2 | Call addItem API                | On submit, call `addItem`; show loading; handle errors. Item appears immediately to all via WebSocket. | spec.MD §6.1            |
+| 3.5.2 | Call addItem API                | On submit, call `addItem`; show loading. Handle: empty title → inline validation; add fails → "Could not add item. Try again." with retry; preserve form data. Item appears immediately to all via WebSocket. | spec.MD §6.1, UC-6.1 |
 | 3.5.3 | Edit item (before voting)       | "Edit" on item card; same form; call `updateItem`. "Remove item" with confirmation; call `removeItem`. | spec.MD §6.1            |
 | 3.5.4 | Theme and responsive            | Use component system; touch targets ≥ 44 px; keyboard submit.                                          | ui-definition.MD §5, §6 |
 
@@ -350,10 +359,12 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 | ID    | Task                       | Acceptance criteria                                                                                                                       | Ref                                |
 | ----- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | 3.6.1 | Card deck UI               | Display cards with values from room deckValues only (no descriptions before reveal). Selected card visually distinct. Single tap to vote. | ui-definition.MD §6.2, §7.3, §7.10 |
-| 3.6.2 | Cast vote and change vote  | Call `castVote` on selection; allow change until reveal. Facilitator sees same deck and can vote.                                         | spec.MD §6.2                       |
+| 3.6.2 | Cast vote and change vote  | Call `castVote` on selection; show confirmation (e.g. checkmark, "Vote submitted"); allow change until reveal. Facilitator sees same deck and can vote. Vote fail → brief message + retry. | spec.MD §6.2, UC-6.2 |
 | 3.6.3 | Vote count feedback        | Show "X of Y have voted" (no values). Update via WebSocket `voteCount`.                                                                   | spec.MD §6.2                       |
-| 3.6.4 | Observer state             | Observer sees "You are observing; no vote." No card deck.                                                                                 | spec.MD §5.5                       |
-| 3.6.5 | Keyboard and accessibility | Cards focusable; Enter/Space to select; logical Tab order.                                                                                | ui-definition.MD §4.2              |
+| 3.6.4 | No current item state     | When no item yet: show "Waiting for facilitator to add an item." No voting controls. No dead end.                                        | spec.MD §15.4 UC-6.2              |
+| 3.6.5 | Connection lost during vote| On reconnect: if vote was lost, show "Reconnected. Please submit your vote again if needed." Allow easy re-vote.                          | spec.MD §15.2 UC-6.2, §15.7        |
+| 3.6.6 | Observer state             | Observer sees "You are observing; no vote." No card deck.                                                                                 | spec.MD §5.5                       |
+| 3.6.7 | Keyboard and accessibility | Cards focusable; Enter/Space to select; logical Tab order.                                                                                | ui-definition.MD §4.2              |
 
 
 ---
@@ -363,7 +374,7 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 
 | ID    | Task                   | Acceptance criteria                                                                                                  | Ref                                  |
 | ----- | ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| 3.7.1 | Reveal votes button    | "Reveal votes" (facilitator only, when voting); call `revealVotes`; all votes displayed simultaneously.              | spec.MD §6.3                         |
+| 3.7.1 | Reveal votes button    | "Reveal votes" (facilitator only, when voting); call `revealVotes`; all votes displayed simultaneously. If no votes: allow reveal (show "No votes") or prompt "No votes yet. Wait?" per product decision. Partial votes: show "Did not vote" for missing. | spec.MD §6.3, UC-6.3 |
 | 3.7.2 | Post-reveal display    | Show all votes; highlight highest and lowest; card descriptions (if any) visible.                                    | spec.MD §6.3, ui-definition.MD §7.10 |
 | 3.7.3 | Post-reveal statistics | Display average value, suggested estimate (rounded), vote distribution (e.g. "3 voted 5, 2 voted 8, 1 voted 13").    | spec.MD §6.6                         |
 | 3.7.4 | Re-vote button         | "Re-vote" clears current round; call `revote`; new round starts; previous round in history.                          | spec.MD §6.4                         |
@@ -382,6 +393,7 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 | 3.8.2 | Item list (estimated) | Show list of estimated items with final estimates; current item highlighted.                                         | spec.MD §6.5          |
 | 3.8.3 | State-driven UI       | No item → lobby; voting → cards + vote count; revealed → votes + statistics + record/re-vote; finalized → next item. | spec.MD §6.0–6.6      |
 | 3.8.4 | WebSocket sync        | All estimation state updates (items, votes, reveal, finalize) propagate in real time to all participants.            | spec.MD §6.1–6.6      |
+| 3.8.5 | Reconnection flow     | On refresh/reconnect: fetch current room state; if open, restore item + voting state; if closed, show summary. Show "Reconnected" feedback. Never show stale voting UI for closed room. | spec.MD §15.7 UC-15.7 |
 
 
 ---
@@ -402,16 +414,187 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 
 Before moving to Phase 4 (AI Assist):
 
-- Facilitator can add estimation items (title, description); edit and remove before voting.
-- Participants and facilitator can vote in secret; votes hidden until reveal; "X of Y have voted" shown.
-- Facilitator reveals votes; all see votes, average, suggested estimate, vote distribution; card descriptions visible after reveal.
+- Facilitator can add estimation items (title, description); edit and remove before voting. Empty title validated; add failure shows retry.
+- Participants and facilitator can vote in secret; votes hidden until reveal; "X of Y have voted" shown. Vote confirmation; change vote until reveal.
+- No item yet: "Waiting for facilitator to add an item." No dead end.
+- Connection lost during vote: on reconnect, prompt to re-vote if needed.
+- Facilitator reveals votes; all see votes, average, suggested estimate, vote distribution; card descriptions visible after reveal. No votes / partial votes handled.
 - Facilitator can re-vote (new round) or record final estimate.
 - Item marked estimated; facilitator can add next item or close room.
+- Reconnection: fetch current room state; show "Reconnected"; never stale voting UI for closed room.
 - Real-time: items, votes, reveal, finalize propagate via WebSocket.
 - All UI follows ui-definition.MD (themes, touch targets, confirmations).
 - FIX: After revealing votes guests are not updated to new item to vote
 - FIX: After revealing votes, Host can't vote again — last value was fixed
 - FIX: Anyone should change voting before the vote is revealed
+
+---
+
+## Phase 4: AI Assist
+
+These tasks implement **AI Assist** (User Stories 7.1–7.2) per `spec.MD` §15.5. Covers: Discrepancy Analysis, Session Summary. Implementation must align with use cases UC-7.1 and UC-7.2.
+
+**Definition of done for Phase 4:** After reveal, facilitator can trigger AI discrepancy analysis; AI output shown as recommendation. Facilitator can generate session summary and export. AI failures do not block core flow.
+
+---
+
+### 4.1 Server — AI endpoints
+
+| ID    | Task                                      | Acceptance criteria                                                                                                              | Ref        |
+| ----- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 4.1.1 | `POST /api/rooms/:id/items/:itemId/analyze` | Accept facilitator auth; send vote data to AI (no PII); return analysis (variation, possible causes). Timeout configurable.       | spec.MD §7.1, UC-7.1 |
+| 4.1.2 | `POST /api/rooms/:id/summary`             | Accept facilitator auth; compile items, votes, final estimates, participants; return structured summary.                         | spec.MD §7.2, UC-7.2 |
+
+---
+
+### 4.2 Shared — AI API client
+
+| ID    | Task                               | Acceptance criteria                                                                                    | Ref        |
+| ----- | ---------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------- |
+| 4.2.1 | Add `analyzeDiscrepancy(roomId, itemId)` | HTTP POST to analyze endpoint; return analysis or throw.                                                | quickstart.MD §5 |
+| 4.2.2 | Add `generateSummary(roomId)`       | HTTP POST to summary endpoint; return summary text/structure.                                           | quickstart.MD §5 |
+
+---
+
+### 4.3 Web — AI features (facilitator)
+
+| ID    | Task                        | Acceptance criteria                                                                                                              | Ref        |
+| ----- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 4.3.1 | Discrepancy analysis button | After reveal, "Analyze" button; call API; show loading "Analyzing..."; display result as "AI suggestion — you decide."          | spec.MD §7.1, UC-7.1 |
+| 4.3.2 | AI error handling          | AI unavailable or timeout: "Analysis unavailable. You can still record the final estimate." No blocking.                         | spec.MD §15.5 UC-7.1 |
+| 4.3.3 | Generate summary button    | "Generate Summary" compiles items, votes, final estimates, participants; display structured text.                                 | spec.MD §7.2, UC-7.2 |
+| 4.3.4 | Export summary             | Copy or export (plain text, JSON); download or clipboard. Failure: "Could not generate summary. Try again." No data loss.         | spec.MD §15.5 UC-7.2 |
+
+---
+
+## Phase 4 completion checklist
+
+- Facilitator can trigger discrepancy analysis after reveal; loading state; result as recommendation.
+- AI unavailable/timeout: clear message; core flow (record final estimate) not blocked.
+- Facilitator can generate session summary; export/copy; failure shows retry.
+
+---
+
+## Phase 5: History & Reporting
+
+These tasks implement **History & Reporting** (User Stories 8.1–8.2) per `spec.MD` §15.6. Covers: Session History, Export Results. MVP: session history viewable for the session; Post-MVP: persistent history for authenticated users.
+
+**Definition of done for Phase 5:** Users can view session history (room name, date, items, final estimates). Facilitator can export results. Empty state and errors handled.
+
+---
+
+### 5.1 Server — History and export
+
+| ID    | Task                                   | Acceptance criteria                                                                                              | Ref        |
+| ----- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------- |
+| 5.1.1 | `GET /api/rooms/:id/history`           | Return session summary (items, final estimates, participants, date) for room. Available when room closed.      | spec.MD §8.1, UC-8.1 |
+| 5.1.2 | `GET /api/rooms/:id/export?format=json|csv|txt` | Return export in requested format. Facilitator or room participant.                                               | spec.MD §8.2, UC-8.2 |
+
+---
+
+### 5.2 Shared — History API client
+
+| ID    | Task                           | Acceptance criteria                                      | Ref        |
+| ----- | ------------------------------ | -------------------------------------------------------- | ---------- |
+| 5.2.1 | Add `getSessionHistory(roomId)` | HTTP GET; return session summary.                        | quickstart.MD §5 |
+| 5.2.2 | Add `exportSession(roomId, format)` | HTTP GET with format param; return blob or trigger download. | quickstart.MD §5 |
+
+---
+
+### 5.3 Web — History and export
+
+| ID    | Task                    | Acceptance criteria                                                                                              | Ref        |
+| ----- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------- |
+| 5.3.1 | Session history view    | After room close (or from summary): show room name, date, items, final estimates. Link to detailed view.         | spec.MD §8.1, UC-8.1 |
+| 5.3.2 | Empty history state     | No sessions: "No sessions yet. Create a room to get started." with link to create room.                         | spec.MD §15.6 UC-8.1 |
+| 5.3.3 | History load error      | Load fails: "Could not load history. Try again." with retry.                                                     | spec.MD §15.6 UC-8.1 |
+| 5.3.4 | Export from summary     | Format selector (JSON, CSV, plain text); download or copy. Failure: "Export failed. Try again." Preserve data.   | spec.MD §8.2, UC-8.2 |
+
+---
+
+## Phase 5 completion checklist
+
+- Session history viewable (room name, date, items, final estimates).
+- Empty state and load error handled.
+- Export in multiple formats; failure shows retry.
+
+---
+
+## Phase 6: Account Management *(optional for MVP)*
+
+These tasks implement **Account Management** (User Stories 4.1–4.3) per `spec.MD` §15.1. Covers: Create Account, Login, Logout. Can follow after core flow is stable.
+
+**Definition of done for Phase 6:** User can create account (name, email, password); login; logout. Validation, duplicate email, rate limiting, session handling per use cases.
+
+---
+
+### 6.1 Server — Auth and accounts
+
+| ID    | Task                          | Acceptance criteria                                                                                                              | Ref        |
+| ----- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 6.1.1 | User/account data store        | In-memory or DB: User (id, name, email, passwordHash). Email unique.                                                             | data-model (extend) |
+| 6.1.2 | `POST /api/auth/register`      | Accept `{ name, email, password }`; validate; check email not registered; create account; return session. Reject duplicate email.  | spec.MD §4.1, UC-4.1 |
+| 6.1.3 | `POST /api/auth/login`         | Accept `{ username/email, password }`; constant-time comparison; return session. Generic "Invalid username or password" on failure. | spec.MD §4.2, UC-4.2 |
+| 6.1.4 | `POST /api/auth/logout`        | Invalidate session; return success.                                                                                               | spec.MD §4.3, UC-4.3 |
+| 6.1.5 | Rate limiting on login         | After N failed attempts: return 429; "Too many attempts. Please try again in X minutes."                                        | spec.MD §15.1 UC-4.2 |
+
+---
+
+### 6.2 Shared — Auth API client
+
+| ID    | Task                    | Acceptance criteria                                      | Ref        |
+| ----- | ----------------------- | -------------------------------------------------------- | ---------- |
+| 6.2.1 | Add `register(name, email, password)` | HTTP POST; return session.                               | quickstart.MD §5 |
+| 6.2.2 | Add `login(username, password)`       | HTTP POST; return session.                               | quickstart.MD §5 |
+| 6.2.3 | Add `logout()`          | HTTP POST; clear client session.                        | quickstart.MD §5 |
+
+---
+
+### 6.3 Web — Account screens
+
+| ID    | Task                      | Acceptance criteria                                                                                                              | Ref        |
+| ----- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 6.3.1 | Create account form       | Name, email, password, confirm password. Inline validation; password strength hint. Submit → register; success → redirect to dashboard. | spec.MD §4.1, UC-4.1 |
+| 6.3.2 | Create account errors     | Duplicate email: "An account with this email already exists." + link to login. Password mismatch: "Passwords do not match." Network/server: generic message + retry. | spec.MD §15.1 UC-4.1 |
+| 6.3.3 | Login form                | Username/email, password. Inline validation (required). Submit → login; success → redirect to dashboard (or intended URL).      | spec.MD §4.2, UC-4.2 |
+| 6.3.4 | Login errors              | Invalid credentials: "Invalid username or password." Rate limit: "Too many attempts. Try again in X minutes." Already authenticated → redirect. | spec.MD §15.1 UC-4.2 |
+| 6.3.5 | Logout                    | Logout button; invalidate session; clear client storage; redirect to landing. If in room: confirm "You will leave the room. Continue?" | spec.MD §4.3, UC-4.3 |
+
+---
+
+## Phase 6 completion checklist
+
+- User can create account; duplicate email and validation errors handled.
+- User can login; invalid credentials, rate limiting, already-authenticated handled.
+- User can logout; session cleared; redirect to landing. In-room logout confirms.
+
+---
+
+## Use Case Coverage Checklist
+
+This checklist maps each use case from `spec.MD` §15 to implementation status. Use it to track what remains.
+
+| Use Case | Phase | Status / Tasks |
+|----------|-------|----------------|
+| **UC-4.1** Create Account | 6 | 6.1.2, 6.3.1, 6.3.2 |
+| **UC-4.2** Login | 6 | 6.1.3, 6.1.5, 6.3.3, 6.3.4 |
+| **UC-4.3** Logout | 6 | 6.1.4, 6.3.5 |
+| **UC-5.1** Create Room | 2 | 2.1.4, 2.2.1, 2.5.1–2.5.4 |
+| **UC-5.2** Join Room | 2 | 2.2.2, 2.2.3, 2.6.1–2.6.5 |
+| **UC-5.3** Close Room | 2 | 2.2.5, 2.3.3, 2.7.4, 2.7.5 |
+| **UC-5.4** Leave Room | 2 | 2.2.4, 2.2.6, 2.3.4, 2.7.3 |
+| **UC-5.5** Join as Observer | 2 | 2.2.3, 2.6.3, 2.7.8 |
+| **UC-15.3** Room closed while user present (dead-end prevention) | 2 | 2.3.3, 2.3.5, 2.7.5, 2.7.6, 2.7.7 |
+| **UC-6.1** Add Estimation Item | 3 | 3.2.1–3.2.3, 3.5.1–3.5.4 |
+| **UC-6.2** Secret Voting | 3 | 3.2.4, 3.3.2, 3.6.1–3.6.7 |
+| **UC-6.3** Reveal Votes | 3 | 3.2.5, 3.3.3, 3.7.1, 3.7.2 |
+| **UC-6.4** Re-vote | 3 | 3.2.6, 3.3.4, 3.7.4 |
+| **UC-6.5** Record Final Estimate | 3 | 3.2.7, 3.3.4, 3.7.5, 3.7.6 |
+| **UC-15.7** Reconnection & Recovery | 2, 3 | 2.3.5, 2.7.6, 2.7.7, 3.6.5, 3.8.5 |
+| **UC-7.1** Discrepancy Analysis | 4 | 4.1.1, 4.3.1, 4.3.2 |
+| **UC-7.2** Session Summary | 4 | 4.1.2, 4.3.3, 4.3.4 |
+| **UC-8.1** Session History | 5 | 5.1.1, 5.3.1–5.3.3 |
+| **UC-8.2** Export Results | 5 | 5.1.2, 5.3.4 |
 
 ---
 
