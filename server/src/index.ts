@@ -47,7 +47,7 @@ app.use(express.json());
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") {
     res.sendStatus(204);
     return;
@@ -55,14 +55,26 @@ app.use((req, res, next) => {
   next();
 });
 
+/** Returns true if request has valid auth (Bearer token). Mock: any non-empty token. */
+function isAuthenticated(req: express.Request): boolean {
+  const auth = req.get("Authorization");
+  if (!auth || !auth.startsWith("Bearer ")) return false;
+  const token = auth.slice(7).trim();
+  return token.length > 0;
+}
+
 // --- REST API (Phase 2.2) ---
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-// 2.2.1 POST /api/rooms — Create room
+// 2.2.1 POST /api/rooms — Create room (requires authentication)
 app.post("/api/rooms", (req, res) => {
+  if (!isAuthenticated(req)) {
+    res.status(401).json({ error: "Authentication required. Please log in to create a room." });
+    return;
+  }
   try {
     const { name, deckType, baseUrl: clientBaseUrl } = req.body;
     if (!name || typeof name !== "string") {

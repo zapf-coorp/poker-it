@@ -14,13 +14,28 @@ function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Respo
   );
 }
 
+export interface HttpClientOptions {
+  /** Optional function to provide extra headers (e.g. Authorization) per request */
+  getHeaders?: () => Record<string, string>;
+}
+
 /**
  * HTTP client that accepts a base URL. Wraps fetch for REST calls.
  */
-export function createHttpClient(baseUrl: string) {
+export function createHttpClient(baseUrl: string, options?: HttpClientOptions) {
+  const getHeaders = options?.getHeaders;
+
+  function buildHeaders(defaults: Record<string, string>): Record<string, string> {
+    const headers = { ...defaults };
+    if (getHeaders) Object.assign(headers, getHeaders());
+    return headers;
+  }
+
   return {
     async get<T>(path: string): Promise<T> {
-      const res = await fetchWithTimeout(`${baseUrl}${path}`);
+      const res = await fetchWithTimeout(`${baseUrl}${path}`, {
+        headers: buildHeaders({}),
+      });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
@@ -29,7 +44,7 @@ export function createHttpClient(baseUrl: string) {
     async post<T>(path: string, body?: unknown): Promise<T> {
       const res = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildHeaders({ "Content-Type": "application/json" }),
         body: body ? JSON.stringify(body) : undefined,
       });
       if (!res.ok) {
@@ -40,7 +55,7 @@ export function createHttpClient(baseUrl: string) {
     async patch<T>(path: string, body?: unknown): Promise<T> {
       const res = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: buildHeaders({ "Content-Type": "application/json" }),
         body: body ? JSON.stringify(body) : undefined,
       });
       if (!res.ok) {
@@ -52,7 +67,10 @@ export function createHttpClient(baseUrl: string) {
       const url = params && Object.keys(params).length > 0
         ? `${baseUrl}${path}${path.includes("?") ? "&" : "?"}${new URLSearchParams(params).toString()}`
         : `${baseUrl}${path}`;
-      const res = await fetchWithTimeout(url, { method: "DELETE" });
+      const res = await fetchWithTimeout(url, {
+        method: "DELETE",
+        headers: buildHeaders({}),
+      });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }

@@ -10,6 +10,8 @@ import { app } from "../src/index.js";
 import { rooms, participants, sessions } from "../src/store.js";
 import { DeckType, RoomState, ParticipantRole } from "shared";
 
+const AUTH_HEADER = { Authorization: "Bearer mock-token-valid" };
+
 describe("Phase 2 — Room API", () => {
   beforeEach(() => {
     rooms.clear();
@@ -18,9 +20,18 @@ describe("Phase 2 — Room API", () => {
   });
 
   describe("2.2.1 POST /api/rooms — Create room", () => {
+    it("returns 401 when not authenticated", async () => {
+      const res = await request(app)
+        .post("/api/rooms")
+        .send({ name: "Planning Session", deckType: DeckType.FIBONACCI })
+        .expect(401);
+      expect(res.body.error).toContain("Authentication required");
+    });
+
     it("creates room with name and deckType, returns room, participant, shareableLink", async () => {
       const res = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Planning Session", deckType: DeckType.FIBONACCI })
         .expect(201);
 
@@ -45,6 +56,7 @@ describe("Phase 2 — Room API", () => {
     it("uses FIBONACCI deck when deckType omitted", async () => {
       const res = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Default Deck" })
         .expect(201);
       expect(res.body.room.deckType).toBe(DeckType.FIBONACCI);
@@ -54,6 +66,7 @@ describe("Phase 2 — Room API", () => {
     it("accepts LINEAR and TSHIRT deck types", async () => {
       const linearRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Linear Room", deckType: DeckType.LINEAR })
         .expect(201);
       expect(linearRes.body.room.deckType).toBe(DeckType.LINEAR);
@@ -61,6 +74,7 @@ describe("Phase 2 — Room API", () => {
 
       const tshirtRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "T-shirt Room", deckType: DeckType.TSHIRT })
         .expect(201);
       expect(tshirtRes.body.room.deckType).toBe(DeckType.TSHIRT);
@@ -70,6 +84,7 @@ describe("Phase 2 — Room API", () => {
     it("returns 400 when name is missing", async () => {
       const res = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ deckType: DeckType.FIBONACCI })
         .expect(400);
       expect(res.body.error).toContain("name");
@@ -78,6 +93,7 @@ describe("Phase 2 — Room API", () => {
     it("returns 400 when deckType is invalid", async () => {
       const res = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Test", deckType: "INVALID" })
         .expect(400);
       expect(res.body.error).toBeDefined();
@@ -88,6 +104,7 @@ describe("Phase 2 — Room API", () => {
     it("returns room by ID with deckValues, state, name", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "My Room", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -112,6 +129,7 @@ describe("Phase 2 — Room API", () => {
     it("joins as participant by default, returns participant and room", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Join Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -131,6 +149,7 @@ describe("Phase 2 — Room API", () => {
     it("joins as observer when role is OBSERVER", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Observer Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -145,6 +164,7 @@ describe("Phase 2 — Room API", () => {
     it("returns 400 when displayName is missing", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -164,6 +184,7 @@ describe("Phase 2 — Room API", () => {
     it("returns 403 when room is closed", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Closed Room", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
       const facilitatorId = createRes.body.participant.id;
@@ -184,6 +205,7 @@ describe("Phase 2 — Room API", () => {
     it("marks participant inactive, returns success", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Leave Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -205,6 +227,7 @@ describe("Phase 2 — Room API", () => {
     it("is idempotent when participant already left", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Idempotent Leave", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -226,6 +249,7 @@ describe("Phase 2 — Room API", () => {
     it("returns 400 when participantId is missing", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -240,6 +264,7 @@ describe("Phase 2 — Room API", () => {
     it("closes room when facilitator requests it", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Close Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
       const facilitatorId = createRes.body.participant.id;
@@ -257,6 +282,7 @@ describe("Phase 2 — Room API", () => {
     it("returns 403 when non-facilitator tries to close", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Close Auth Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -275,6 +301,7 @@ describe("Phase 2 — Room API", () => {
     it("is idempotent when room already closed", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Double Close", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
       const facilitatorId = createRes.body.participant.id;
@@ -292,6 +319,7 @@ describe("Phase 2 — Room API", () => {
     it("returns 400 when participantId is missing", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 
@@ -306,6 +334,7 @@ describe("Phase 2 — Room API", () => {
     it("returns active participants in room", async () => {
       const createRes = await request(app)
         .post("/api/rooms")
+        .set(AUTH_HEADER)
         .send({ name: "Participants Test", deckType: DeckType.FIBONACCI });
       const roomId = createRes.body.room.id;
 

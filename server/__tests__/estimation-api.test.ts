@@ -10,6 +10,8 @@ import { app } from "../src/index.js";
 import { rooms, participants, sessions, items, rounds, votes } from "../src/store.js";
 import { DeckType, ParticipantRole, RoundState } from "shared";
 
+const AUTH_HEADER = { Authorization: "Bearer mock-token-valid" };
+
 describe("Phase 3 — Estimation API", () => {
   beforeEach(() => {
     rooms.clear();
@@ -23,6 +25,7 @@ describe("Phase 3 — Estimation API", () => {
   async function createRoomWithItem() {
     const createRes = await request(app)
       .post("/api/rooms")
+      .set(AUTH_HEADER)
       .send({ name: "Estimation Room", deckType: DeckType.FIBONACCI });
     const roomId = createRes.body.room.id;
     const facilitatorId = createRes.body.participant.id;

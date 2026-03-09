@@ -5,7 +5,7 @@
 
 import type { Room, Participant, Item, Vote, VoteStatistics } from "./types.js";
 import { DeckType, ParticipantRole } from "./types.js";
-import { createHttpClient } from "./api-client.js";
+import { createHttpClient, type HttpClientOptions } from "./api-client.js";
 
 export interface CreateRoomResponse {
   room: Room;
@@ -25,9 +25,10 @@ export interface RevealVotesResponse {
 
 /**
  * Create a room API client bound to a base URL.
+ * Optionally pass getHeaders (e.g. for Authorization) for auth-required endpoints like createRoom.
  */
-export function createRoomApi(baseUrl: string) {
-  const http = createHttpClient(baseUrl);
+export function createRoomApi(baseUrl: string, options?: HttpClientOptions) {
+  const http = createHttpClient(baseUrl, options);
 
   return {
     async createRoom(

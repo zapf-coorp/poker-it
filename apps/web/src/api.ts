@@ -6,6 +6,7 @@
 
 import { io } from "socket.io-client";
 import { createRoomApi } from "shared";
+import { getStoredAuth } from "./storage";
 
 const DEFAULT_DEV_API = "http://localhost:3033";
 
@@ -16,7 +17,12 @@ const apiUrl =
       ? DEFAULT_DEV_API
       : window.location.origin;
 
-export const roomApi = createRoomApi(apiUrl);
+export const roomApi = createRoomApi(apiUrl, {
+  getHeaders: () => {
+    const auth = getStoredAuth();
+    return auth ? { Authorization: `Bearer ${auth.token}` } : {};
+  },
+});
 
 export function createRoomSocket() {
   return io(apiUrl || undefined, {
