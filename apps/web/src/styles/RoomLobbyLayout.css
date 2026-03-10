@@ -161,6 +161,15 @@
   background: var(--color-surface);
 }
 
+/* Voted (before reveal): more contrast, thin marked border, slight tilt right, checkmark */
+.room-lobby__player-card--voted-confirm {
+  border-width: 1px;
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  box-shadow: 0 0 0 1px var(--color-primary);
+  transform: rotate(4deg);
+}
+
 .room-lobby__player-card--revealed-high {
   border-color: var(--color-secondary);
   background: linear-gradient(135deg, var(--color-surface) 0%, rgba(201, 162, 39, 0.15) 100%);

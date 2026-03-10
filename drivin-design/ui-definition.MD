@@ -141,6 +141,7 @@ Reusable building blocks; use consistently across screens.
 
 ### 6.4 Feedback
 
+- **Global messages** — Stacked at top of viewport; visible on every page. Each message: short text, close button on right. Types: info, error, success (distinct border/background). Messages clear when user navigates to another route.
 - **Toast / Snackbar** — Short-lived success or error (e.g. “Link copied”, “Room closed”). Non-blocking; auto-dismiss or dismiss button.
 - **Inline error** — Under the field; red (theme-aware).
 - **Loading** — Spinner or skeleton for the affected area; button can show spinner + disabled during submit.
@@ -205,7 +206,7 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 
 **Layout (desktop):** Same; optional sidebar for participant list; keyboard shortcuts for facilitator if implemented.
 
-**States:** No item; voting (secret); revealed; finalized (next item or end). Room closed: no voting, read-only summary.
+**States:** No item; voting (secret); revealed; finalized (next item or end). Room closed: 5-second countdown with "Go now" button; redirect to Create Room; global message "The room [name] was closed at [HH:mm:ss]".
 
 **Responsive:** Cards and buttons 44 px min height on touch. Desktop: hover and keyboard focus.
 
@@ -213,9 +214,9 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 
 ### 7.4 Add / Edit Item (facilitator)
 
-- **Purpose:** Add or edit estimation item (title, description). Used before or between rounds.
+- **Purpose:** Add or edit estimation item (title, description). Used before or during voting (until reveal).
 - **Who:** Facilitator only.
-- **Layout:** Modal or inline form. Title “Add item” / “Edit item”; fields: “Title” (required), “Description” (optional); “Save” and “Cancel”. If edit: “Remove item” (destructive, with confirmation).
+- **Layout:** Modal or inline form. Title “Add item” / “Edit item”; fields: “Title” (required), “Description” (optional); “Save” and “Cancel”. If edit: “Remove item” (destructive, with confirmation; only when no votes cast).
 - **Elements:** Text input title; textarea description; primary “Save”; secondary “Cancel”; destructive “Remove item” (edit only).
 - **States:** Empty; validation error; loading; success (close and refresh list).
 - **Responsive:** On mobile, modal or full-screen overlay with safe padding. Touch-friendly.

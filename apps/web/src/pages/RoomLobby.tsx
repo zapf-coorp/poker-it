@@ -4,13 +4,14 @@
  * See drivin-design/spec.MD §6, ui-definition.MD §7.3, §7.10.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import type { Room, Participant, Item, VoteStatistics } from "shared";
 import { RoomState, ParticipantRole, RoundState } from "shared";
 import { roomApi } from "../api";
 import { getStoredParticipant, clearStoredParticipant } from "../storage";
 import { useRoomSocket } from "../hooks/useRoomSocket";
+import { useMessageContext } from "../context/MessageContext";
 import type { ItemWithRound, RevealedVote } from "../types";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
@@ -63,6 +64,7 @@ export function RoomLobby() {
 
   const [myVote, setMyVote] = useState<string | null>(null);
   const [finalEstimate, setFinalEstimate] = useState<string>("");
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const shareableLink = id ? `${window.location.origin}/room/${id}` : "";
 
@@ -165,6 +167,44 @@ export function RoomLobby() {
     setFinalEstimate,
     fetchItems,
   });
+
+  const { addMessage } = useMessageContext();
+  const isClosed = room?.state === RoomState.CLOSED;
+
+  const hasNotifiedRef = useRef(false);
+  const notifyRoomClosedAndNavigate = useCallback(() => {
+    if (!room || hasNotifiedRef.current) return;
+    hasNotifiedRef.current = true;
+    const closedAt = room.closedAt ? new Date(room.closedAt) : new Date();
+    const timeStr = closedAt.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    addMessage(`The room "${room.name}" was closed at ${timeStr}`, "info");
+    navigate("/create", { replace: true, state: { keepMessages: true } });
+  }, [room, addMessage, navigate]);
+
+  useEffect(() => {
+    if (!isClosed || !room) {
+      setCountdown(null);
+      hasNotifiedRef.current = false;
+      return;
+    }
+    hasNotifiedRef.current = false;
+    setCountdown(5);
+    const id = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          notifyRoomClosedAndNavigate();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isClosed, room, notifyRoomClosedAndNavigate]);
 
   async function handleLeave() {
     if (!id || !participantId) return;
@@ -363,8 +403,6 @@ export function RoomLobby() {
     );
   }
 
-  const isClosed = room?.state === RoomState.CLOSED;
-
   const statsContent = revealedStats && (
     <>
       <h3 style={{ fontSize: "0.95rem", margin: "0 0 12px" }}>Statistics</h3>
@@ -459,6 +497,26 @@ export function RoomLobby() {
         <p style={{ color: "var(--color-error)", margin: 0 }}>{error}</p>
       )}
 
+      {isClosed && countdown !== null && (
+        <Card
+          style={{
+            flexShrink: 0,
+            textAlign: "center",
+            padding: "16px 24px",
+            background: "var(--color-surface)",
+          }}
+        >
+          <p style={{ margin: "0 0 8px", fontSize: "1rem" }}>
+            Room closed. Redirecting to create a new room in{" "}
+            <strong style={{ fontSize: "1.25rem" }}>{countdown}</strong> second
+            {countdown !== 1 ? "s" : ""}…
+          </p>
+          <Button variant="primary" onClick={notifyRoomClosedAndNavigate}>
+            Go now
+          </Button>
+        </Card>
+      )}
+
       {/* Body: table + sidebar */}
       <div className="room-lobby__body">
         <main className="room-lobby__main">
@@ -472,7 +530,14 @@ export function RoomLobby() {
                   const vote = voteByParticipant.get(p.id);
                   const isHigh = isRevealed && vote && vote.cardValue === highest;
                   const isLow = isRevealed && vote && vote.cardValue === lowest;
-                  const displayValue = isRevealed && vote ? vote.cardValue : isVoting ? "?" : "";
+                  const hasVoted = p.id === participantId && myVote !== null;
+                  const displayValue = isRevealed && vote
+                    ? vote.cardValue
+                    : isVoting
+                      ? hasVoted
+                        ? "✓"
+                        : "?"
+                      : "";
                   return (
                     <div
                       key={p.id}
@@ -486,9 +551,9 @@ export function RoomLobby() {
                       <div
                         className={`room-lobby__player-card ${
                           isVoting || (isRevealed && !!vote) ? "room-lobby__player-card--voted" : ""
-                        } ${isHigh ? "room-lobby__player-card--revealed-high" : ""} ${
-                          isLow ? "room-lobby__player-card--revealed-low" : ""
-                        }`}
+                        } ${hasVoted && isVoting ? "room-lobby__player-card--voted-confirm" : ""} ${
+                          isHigh ? "room-lobby__player-card--revealed-high" : ""
+                        } ${isLow ? "room-lobby__player-card--revealed-low" : ""}`}
                       >
                         {displayValue || (
                           <span
@@ -576,18 +641,18 @@ export function RoomLobby() {
               }}
             >
               {isVoting && (
-                <Button variant="primary" onClick={handleReveal} loading={actionLoading}>
-                  Reveal votes
-                </Button>
-              )}
-              {isVoting && votingCount === 0 && (
                 <>
+                  <Button variant="primary" onClick={handleReveal} loading={actionLoading}>
+                    Reveal votes
+                  </Button>
                   <Button variant="secondary" onClick={() => openEditItem(currentItem)}>
                     Edit item
                   </Button>
-                  <Button variant="destructive" onClick={() => setRemoveConfirmItem(currentItem)}>
-                    Remove item
-                  </Button>
+                  {votingCount === 0 && (
+                    <Button variant="destructive" onClick={() => setRemoveConfirmItem(currentItem)}>
+                      Remove item
+                    </Button>
+                  )}
                 </>
               )}
               {isRevealed && (
