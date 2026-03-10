@@ -2,6 +2,8 @@
 
 This document defines **UI/UX rules**, **themes**, **breakpoints**, **components**, and **screen-by-screen layouts** for the Planning Poker app. It supports `spec.MD` (product spec), `configuration.MD` (workflow), and `quickstart.MD` (stack). Implementation must be **mobile-first**, then scale to tablet, small desktop, and large desktop, with **finger-friendly** touch on small devices and **mouse/keyboard-friendly** on larger ones. **Light and dark mode** are required.
 
+**TDD mandate:** No UI component, screen, CSS file, or HTML structure may be created before a failing test for it exists. Every screen and component listed in this document has a corresponding TEST task in `tasks.MD`. The test must be written first, confirmed to fail, and then the component is implemented to make it pass. See `configuration.MD` §3 for the full TDD rules.
+
 ---
 
 ## 1. Design Principles
@@ -120,6 +122,8 @@ Two themes are **required**: **Clear (light)** and **Dark**.
 
 Reusable building blocks; use consistently across screens.
 
+**TDD for components:** Every component listed below must have a test written before the component file is created. The test must cover: renders without crashing, renders with required props, interactive states (loading, error, disabled), and any behavior described in the spec. Use React Testing Library and `@testing-library/user-event`.
+
 ### 6.1 Buttons
 
 - **Primary** — Filled with primary color; for the main action on the screen (e.g. “Create room”, “Reveal votes”). Min height 44 px on touch targets.
@@ -161,6 +165,8 @@ Reusable building blocks; use consistently across screens.
 ## 7. Screen Inventory and Layouts
 
 Screens are derived from `spec.MD` user stories. For each: **purpose**, **who sees it**, **layout**, **key elements**, **states**, **responsive notes**.
+
+**TDD for screens:** Every screen below has a paired TEST task in `tasks.MD`. Before creating any screen file, write a React Testing Library test that covers all states listed for that screen (empty, loading, error, success, role-based variants). The test must fail first. Only then implement the screen to make the test pass.
 
 ---
 
@@ -307,8 +313,9 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 | Document | Purpose |
 |----------|--------|
 | `drivin-design/spec.MD` | Product and user stories; success criteria. |
-| `drivin-design/configuration.MD` | Workflow and AI rules. |
-| `drivin-design/quickstart.MD` | Stack (React, Expo, shared). |
+| `drivin-design/configuration.MD` | Workflow, TDD rules, and AI rules. |
+| `drivin-design/quickstart.MD` | Stack (React, Expo, shared), testing tools, and commands. |
+| `drivin-design/tasks.MD` | Implementation tasks with paired TEST tasks for every screen and component. |
 | `drivin-design/ui-definition.MD` | This file — UI rules, themes, components, screens. |
 
-When implementing UI, use this document for layout, components, themes, and input behavior; use `spec.MD` for what the screen must do (success criteria).
+When implementing UI, use this document for layout, components, themes, and input behavior; use `spec.MD` for what the screen must do (success criteria); use `tasks.MD` to find the TEST task that must be completed first.
