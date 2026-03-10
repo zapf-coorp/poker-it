@@ -59,6 +59,7 @@ When using an AI assistant to build from this spec:
 - **Cite the spec** — When implementing a feature, reference the section and user story (e.g. “Per User Story 6.2 — Secret Voting and its success criteria…”).
 - **Respect success criteria** — Treat them as mandatory. Do not mark a story done until each criterion is satisfied.
 - **Respect business rules** — Section 9 in `spec.MD` (and any equivalent) are hard constraints (e.g. “Votes must remain secret until reveal”).
+- **Respect card selection rules** — Before reveal: participants can select, deselect, or change cards; selected card has distinct visual feedback (brighter, more contrasting border). After reveal: no selection, change, or deselection; votes are read-only.
 - **Respect MVP** — When scope is unclear, implement in the order implied by the MVP section and avoid adding non-MVP features in the same slice.
 
 ### 4.2 When the Spec Is Unclear

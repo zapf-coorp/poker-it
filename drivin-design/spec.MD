@@ -166,6 +166,7 @@ So that estimation is officially completed
 ### Success Criteria
 - After closing, no further votes can be cast.
 - Session history remains available for viewing.
+- When room is closed (by facilitator or when viewing an already-closed room): a 5-second countdown is shown; user is redirected to the Create Room page; a global message displays: "The room [name] was closed at [HH:mm:ss]".
 
 ---
 
@@ -196,6 +197,20 @@ So that I can watch the session without voting
 
 ---
 
+## User Story 5.6 — Global Messages
+
+As a user  
+I want to see feedback messages in a consistent place  
+So that I am informed of important events and can dismiss them  
+
+### Success Criteria
+- Messages are displayed in a global component visible on every page.
+- Multiple messages stack vertically; each has a close button on the right.
+- Messages are cleared when the user navigates to another route or page.
+- Messages support types: info, error, success (with distinct styling).
+
+---
+
 # 6. Estimation Process
 
 ## 6.0 Voting System & Usability
@@ -208,6 +223,11 @@ The estimation process follows a structured voting flow designed for clarity and
 - One item is estimated at a time; the facilitator controls progression.
 - Re-voting is allowed after discussion to reach consensus.
 - **Card descriptions:** If cards have optional descriptions (e.g., "5 = ~1 day", "8 = complex"), these are not shown to participants until the facilitator reveals votes. Before reveal, participants see only the card values.
+
+### Card Selection and Reveal Rules
+- **Before reveal:** Everyone can select, deselect, or change their card at any time. Participants may tap a card to select it, tap the same card again to deselect, or tap a different card to change their vote.
+- **Selected card appearance:** When a card is selected, it changes appearance on the table (deck): it becomes brighter (more luminous) and has a more contrasting border to clearly indicate the current selection.
+- **After reveal:** No one can select, change, or deselect the revealed card. Voting controls are hidden; votes are read-only.
 
 ### Usability Principles
 - **Clarity:** Current item, voting status, and participant count are always visible.
@@ -226,8 +246,8 @@ So that the team can estimate it
 
 ### Success Criteria
 - Item appears immediately to all participants.
-- Item can be edited before voting starts.
-- Item can be removed if necessary.
+- Item can be edited before voting starts and during voting (until votes are revealed).
+- Item can be removed if necessary (only when no votes have been cast).
 
 ---
 
@@ -240,7 +260,9 @@ So that I can register my estimate
 ### Success Criteria
 - Votes remain hidden until revealed.
 - Facilitator can vote like participants; their vote is secret until reveal.
-- Participants and facilitator can change their vote before reveal.
+- Participants and facilitator can select, deselect, or change their vote before reveal.
+- Selected card has distinct visual feedback (brighter, more contrasting border).
+- After reveal, no one can select, change, or deselect; votes are read-only.
 - System shows how many participants have voted without revealing values.
 - Card descriptions (if any) are not shown to participants before reveal; only card values are visible for voting.
 

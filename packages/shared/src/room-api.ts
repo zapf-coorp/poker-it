@@ -112,6 +112,16 @@ export function createRoomApi(baseUrl: string, options?: HttpClientOptions) {
       });
     },
 
+    async removeVote(
+      roomId: string,
+      itemId: string,
+      participantId: string
+    ): Promise<void> {
+      await http.delete(`/api/rooms/${roomId}/items/${itemId}/vote`, {
+        participantId,
+      });
+    },
+
     async revealVotes(
       roomId: string,
       itemId: string,

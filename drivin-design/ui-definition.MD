@@ -130,7 +130,7 @@ Reusable building blocks; use consistently across screens.
 ### 6.2 Cards
 
 - **Surface** — Rounded corners (e.g. 8–12 px), subtle shadow (light) or border (dark). Used for: room card, estimation item, participant list container.
-- **Voting card** — Poker-inspired: surface color with subtle border; selected state uses primary (felt green) border or background tint; value (number or symbol) centered, large and readable. Before reveal: show only value; after reveal: optional description below value (if deck has descriptions).
+- **Voting card** — Poker-inspired: surface color with subtle border; **selected state** uses a brighter (more luminous) appearance and a more contrasting border to clearly indicate the current selection; value (number or symbol) centered, large and readable. Before reveal: show only value; after reveal: optional description below value (if deck has descriptions). After reveal, voting cards are read-only; no selection or deselection is possible.
 - **Content:** Title (optional), body, optional footer with actions. Padding consistent (e.g. 16 px).
 
 ### 6.3 Form controls
@@ -141,6 +141,7 @@ Reusable building blocks; use consistently across screens.
 
 ### 6.4 Feedback
 
+- **Global messages** — Stacked at top of viewport; visible on every page. Each message: short text, close button on right. Types: info, error, success (distinct border/background). Messages clear when user navigates to another route.
 - **Toast / Snackbar** — Short-lived success or error (e.g. “Link copied”, “Room closed”). Non-blocking; auto-dismiss or dismiss button.
 - **Inline error** — Under the field; red (theme-aware).
 - **Loading** — Spinner or skeleton for the affected area; button can show spinner + disabled during submit.
@@ -205,7 +206,7 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 
 **Layout (desktop):** Same; optional sidebar for participant list; keyboard shortcuts for facilitator if implemented.
 
-**States:** No item; voting (secret); revealed; finalized (next item or end). Room closed: no voting, read-only summary.
+**States:** No item; voting (secret); revealed; finalized (next item or end). Room closed: 5-second countdown with "Go now" button; redirect to Create Room; global message "The room [name] was closed at [HH:mm:ss]".
 
 **Responsive:** Cards and buttons 44 px min height on touch. Desktop: hover and keyboard focus.
 
@@ -213,9 +214,9 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 
 ### 7.4 Add / Edit Item (facilitator)
 
-- **Purpose:** Add or edit estimation item (title, description). Used before or between rounds.
+- **Purpose:** Add or edit estimation item (title, description). Used before or during voting (until reveal).
 - **Who:** Facilitator only.
-- **Layout:** Modal or inline form. Title “Add item” / “Edit item”; fields: “Title” (required), “Description” (optional); “Save” and “Cancel”. If edit: “Remove item” (destructive, with confirmation).
+- **Layout:** Modal or inline form. Title “Add item” / “Edit item”; fields: “Title” (required), “Description” (optional); “Save” and “Cancel”. If edit: “Remove item” (destructive, with confirmation; only when no votes cast).
 - **Elements:** Text input title; textarea description; primary “Save”; secondary “Cancel”; destructive “Remove item” (edit only).
 - **States:** Empty; validation error; loading; success (close and refresh list).
 - **Responsive:** On mobile, modal or full-screen overlay with safe padding. Touch-friendly.
@@ -278,7 +279,10 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 
 - **Purpose:** Implement the full estimation flow: add item, secret voting, reveal, re-vote, record final estimate, post-reveal statistics.
 - **Who:** Facilitator (add item, reveal, re-vote, record final); participant and facilitator (vote); observer (view only after reveal).
-- **Voting (6.2):** Cards show values only (no descriptions before reveal). Facilitator can vote like participants. Single tap to select; "Change vote" until reveal. Feedback: "X of Y have voted".
+- **Card selection and reveal rules:**
+  - **Before reveal:** Everyone can select, deselect, or change their card. Single tap to select; tap same card again to deselect; tap different card to change. Selected card has distinct visual feedback (brighter, more contrasting border).
+  - **After reveal:** No one can select, change, or deselect. Voting controls are hidden; votes are read-only.
+- **Voting (6.2):** Cards show values only (no descriptions before reveal). Facilitator can vote like participants. Feedback: "X of Y have voted".
 - **Reveal (6.3):** All votes displayed simultaneously. Card descriptions (if any) become visible. Highlight highest and lowest.
 - **Post-reveal statistics (6.6):** Show average value, suggested estimate (rounded from average), vote distribution (e.g. "3 voted 5, 2 voted 8, 1 voted 13").
 - **Re-vote (6.4):** "Re-vote" clears current round; previous round kept in history.
