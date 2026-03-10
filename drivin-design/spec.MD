@@ -209,6 +209,11 @@ The estimation process follows a structured voting flow designed for clarity and
 - Re-voting is allowed after discussion to reach consensus.
 - **Card descriptions:** If cards have optional descriptions (e.g., "5 = ~1 day", "8 = complex"), these are not shown to participants until the facilitator reveals votes. Before reveal, participants see only the card values.
 
+### Card Selection and Reveal Rules
+- **Before reveal:** Everyone can select, deselect, or change their card at any time. Participants may tap a card to select it, tap the same card again to deselect, or tap a different card to change their vote.
+- **Selected card appearance:** When a card is selected, it changes appearance on the table (deck): it becomes brighter (more luminous) and has a more contrasting border to clearly indicate the current selection.
+- **After reveal:** No one can select, change, or deselect the revealed card. Voting controls are hidden; votes are read-only.
+
 ### Usability Principles
 - **Clarity:** Current item, voting status, and participant count are always visible.
 - **Low friction:** Vote selection is quick (e.g. single click/tap); participants can change their vote before reveal.
@@ -240,7 +245,9 @@ So that I can register my estimate
 ### Success Criteria
 - Votes remain hidden until revealed.
 - Facilitator can vote like participants; their vote is secret until reveal.
-- Participants and facilitator can change their vote before reveal.
+- Participants and facilitator can select, deselect, or change their vote before reveal.
+- Selected card has distinct visual feedback (brighter, more contrasting border).
+- After reveal, no one can select, change, or deselect; votes are read-only.
 - System shows how many participants have voted without revealing values.
 - Card descriptions (if any) are not shown to participants before reveal; only card values are visible for voting.
 

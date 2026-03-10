@@ -130,7 +130,7 @@ Reusable building blocks; use consistently across screens.
 ### 6.2 Cards
 
 - **Surface** — Rounded corners (e.g. 8–12 px), subtle shadow (light) or border (dark). Used for: room card, estimation item, participant list container.
-- **Voting card** — Poker-inspired: surface color with subtle border; selected state uses primary (felt green) border or background tint; value (number or symbol) centered, large and readable. Before reveal: show only value; after reveal: optional description below value (if deck has descriptions).
+- **Voting card** — Poker-inspired: surface color with subtle border; **selected state** uses a brighter (more luminous) appearance and a more contrasting border to clearly indicate the current selection; value (number or symbol) centered, large and readable. Before reveal: show only value; after reveal: optional description below value (if deck has descriptions). After reveal, voting cards are read-only; no selection or deselection is possible.
 - **Content:** Title (optional), body, optional footer with actions. Padding consistent (e.g. 16 px).
 
 ### 6.3 Form controls
@@ -278,7 +278,10 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 
 - **Purpose:** Implement the full estimation flow: add item, secret voting, reveal, re-vote, record final estimate, post-reveal statistics.
 - **Who:** Facilitator (add item, reveal, re-vote, record final); participant and facilitator (vote); observer (view only after reveal).
-- **Voting (6.2):** Cards show values only (no descriptions before reveal). Facilitator can vote like participants. Single tap to select; "Change vote" until reveal. Feedback: "X of Y have voted".
+- **Card selection and reveal rules:**
+  - **Before reveal:** Everyone can select, deselect, or change their card. Single tap to select; tap same card again to deselect; tap different card to change. Selected card has distinct visual feedback (brighter, more contrasting border).
+  - **After reveal:** No one can select, change, or deselect. Voting controls are hidden; votes are read-only.
+- **Voting (6.2):** Cards show values only (no descriptions before reveal). Facilitator can vote like participants. Feedback: "X of Y have voted".
 - **Reveal (6.3):** All votes displayed simultaneously. Card descriptions (if any) become visible. Highlight highest and lowest.
 - **Post-reveal statistics (6.6):** Show average value, suggested estimate (rounded from average), vote distribution (e.g. "3 voted 5, 2 voted 8, 1 voted 13").
 - **Re-vote (6.4):** "Re-vote" clears current round; previous round kept in history.

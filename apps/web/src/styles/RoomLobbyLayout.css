@@ -258,8 +258,10 @@
 }
 
 .room-lobby__deck-card--selected {
+  border-width: 3px;
   border-color: var(--color-primary);
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-primary) 15%, var(--color-surface));
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 /* Mobile: sidebar as collapsible or below table */

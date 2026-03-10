@@ -20,6 +20,7 @@ import {
   updateItem,
   removeItem,
   castVote,
+  removeVote,
   revealVotes,
   revote,
   recordFinalEstimate,
@@ -317,6 +318,32 @@ app.post("/api/rooms/:id/items/:itemId/vote", (req, res) => {
     res.status(200).json({ success: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to cast vote";
+    const status = msg.includes("not found") ? 404 : msg.includes("closed") ? 403 : 400;
+    res.status(status).json({ error: msg });
+  }
+});
+
+// DELETE /api/rooms/:id/items/:itemId/vote — Remove vote (deselect)
+app.delete("/api/rooms/:id/items/:itemId/vote", (req, res) => {
+  try {
+    const { id: roomId, itemId } = req.params;
+    const participantId = (req.query.participantId ?? req.body?.participantId) as string | undefined;
+    if (!participantId || typeof participantId !== "string") {
+      res.status(400).json({ error: "participantId is required" });
+      return;
+    }
+    removeVote(roomId, itemId, participantId);
+    const item = rooms.get(roomId) ? getItemsByRoom(roomId).find((i) => i.id === itemId) : null;
+    const roundId = item?.currentRoundId;
+    if (roundId) {
+      const votedCount = getVoteCountForRound(roundId);
+      const totalCount = getVotingParticipantCount(roomId);
+      const io = (app as unknown as { io?: SocketIOServer }).io;
+      if (io) io.to(roomId).emit("voteCount", { itemId, votedCount, totalCount });
+    }
+    res.status(200).json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to remove vote";
     const status = msg.includes("not found") ? 404 : msg.includes("closed") ? 403 : 400;
     res.status(status).json({ error: msg });
   }

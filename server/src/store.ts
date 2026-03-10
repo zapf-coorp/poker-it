@@ -429,6 +429,27 @@ export function castVote(input: CastVoteInput): Vote {
   return vote;
 }
 
+export function removeVote(roomId: string, itemId: string, participantId: string): void {
+  const room = rooms.get(roomId);
+  if (!room) throw new Error("Room not found");
+  if (room.state === RoomState.CLOSED) throw new Error("Room is closed");
+
+  const participant = participants.get(participantId);
+  if (!participant || participant.roomId !== roomId || !participant.isActive) throw new Error("Participant not found");
+  if (participant.role === ParticipantRole.OBSERVER) throw new Error("Observers cannot vote");
+
+  const item = items.get(itemId);
+  if (!item || item.roomId !== roomId) throw new Error("Item not found");
+  if (!item.currentRoundId) throw new Error("No active round for this item");
+
+  const round = rounds.get(item.currentRoundId);
+  if (!round || round.itemId !== itemId) throw new Error("Round not found");
+  if (round.state !== RoundState.VOTING) throw new Error("Voting is closed for this round");
+
+  const existing = [...votes.values()].find((v) => v.roundId === round.id && v.participantId === participantId);
+  if (existing) votes.delete(existing.id);
+}
+
 export interface RevealVotesResult {
   votes: Array<Vote & { participantName: string }>;
   statistics: VoteStatistics;

@@ -259,8 +259,13 @@ export function RoomLobby() {
   async function handleVote(cardValue: string) {
     if (!id || !participantId || !currentItem || !canVote || isObserver) return;
     try {
-      await roomApi.castVote(id, currentItem.id, participantId, cardValue);
-      setMyVote(cardValue);
+      if (myVote === cardValue) {
+        await roomApi.removeVote(id, currentItem.id, participantId);
+        setMyVote(null);
+      } else {
+        await roomApi.castVote(id, currentItem.id, participantId, cardValue);
+        setMyVote(cardValue);
+      }
       fetchItems();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to vote");
@@ -653,7 +658,7 @@ export function RoomLobby() {
       {currentItem && isVoting && !isObserver && (
         <div className="room-lobby__deck">
           <p style={{ margin: "0 0 8px", fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>
-            Choose a card (tap to change)
+            Choose a card (tap to select, tap again to deselect, tap another to change)
           </p>
           <div className="room-lobby__deck-inner">
             {room?.deckValues.map((val) => (
