@@ -476,31 +476,35 @@ export function RoomLobby() {
                   return (
                     <div
                       key={p.id}
-                      className={`room-lobby__player-card ${
-                        isVoting || (isRevealed && !!vote) ? "room-lobby__player-card--voted" : ""
-                      } ${isHigh ? "room-lobby__player-card--revealed-high" : ""} ${
-                        isLow ? "room-lobby__player-card--revealed-low" : ""
-                      }`}
+                      className="room-lobby__player-card-wrap"
                       style={{
                         left: `${pos.left}%`,
                         top: `${pos.top}%`,
                         transform: "translate(-50%, -50%)",
                       }}
-                      title={p.displayName}
                     >
-                      {displayValue || (
-                        <span
-                          style={{
-                            fontSize: "0.7rem",
-                            color: "var(--color-text-secondary)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            maxWidth: "100%",
-                          }}
-                        >
-                          {p.displayName.charAt(0)}
-                        </span>
-                      )}
+                      <div
+                        className={`room-lobby__player-card ${
+                          isVoting || (isRevealed && !!vote) ? "room-lobby__player-card--voted" : ""
+                        } ${isHigh ? "room-lobby__player-card--revealed-high" : ""} ${
+                          isLow ? "room-lobby__player-card--revealed-low" : ""
+                        }`}
+                      >
+                        {displayValue || (
+                          <span
+                            style={{
+                              fontSize: "0.7rem",
+                              color: "var(--color-text-secondary)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              maxWidth: "100%",
+                            }}
+                          >
+                            {p.displayName.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                      <span className="room-lobby__player-card-name">{p.displayName}</span>
                     </div>
                   );
                 })}
