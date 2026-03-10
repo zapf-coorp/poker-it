@@ -224,10 +224,11 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 | 2.7.2 | Participant list with real-time updates | Display active participants; connect WebSocket; update list on `participantJoined`, `participantLeft`. Observers shown with "(observer)" label.                 | spec.MD §5.2, §5.5                  |
 | 2.7.3 | Leave room (participant)                | "Leave" button; optional confirmation: "Leave this session?" Call `leaveRoom`; redirect to clear destination (home, Create Room, or Join Room) — never blank/broken view. | spec.MD §5.4, UC-5.4, ui-definition.MD §7.9 |
 | 2.7.4 | Close room (facilitator)                | "Close room" button (facilitator only); confirmation: "Close this session? No further votes can be cast." If items have no final estimate: warn "X item(s) have no final estimate. Close anyway?" Call `closeRoom`; broadcast summary. | spec.MD §5.3, UC-5.3, ui-definition.MD §7.9 |
-| 2.7.5 | Handle room closed event (dead-end prevention) | On WebSocket `roomClosed`: immediately disable voting; show prominent "This session has ended."; display session summary (items, final estimates); show "Return to Home" and "Create New Room" buttons. No user left in active voting view. | spec.MD §5.3, UC-15.3 |
+| 2.7.5 | Handle room closed event (dead-end prevention) | On WebSocket `roomClosed`: immediately disable voting; show prominent "This session has ended."; display session summary (items, final estimates); show 5-second countdown with "Go now" button; redirect to Create Room page; display global message "The room [name] was closed at [HH:mm:ss]". No user left in active voting view. | spec.MD §5.3, §5.6, UC-15.3 |
 | 2.7.6 | Room closed — polling fallback          | If WebSocket unavailable: poll `GET /api/rooms/:id` periodically; when `state=CLOSED`, show same summary + exit options. Mitigate long delays with "Session may have ended?" + refresh. | spec.MD §15.3 |
 | 2.7.7 | Room closed — on page refresh           | On load/reconnect: fetch room state; if closed, show summary view directly (not voting view). Never show stale "voting in progress" for closed room.           | spec.MD §15.7 UC-15.7 |
 | 2.7.8 | Role-based UI                           | Facilitator sees "Close room"; participant/observer see "Leave". Observer sees same layout but no vote controls (none in Phase 2).                              | spec.MD §5.3, §5.4, §5.5            |
+| 2.7.9 | Global messages component               | Message component on every page; messages stack vertically; each has close button; messages clear on navigation. Support types: info, error, success.         | spec.MD §5.6                         |
 
 
 ---
@@ -349,7 +350,7 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 | ----- | ------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------- |
 | 3.5.1 | Add item form (modal or inline) | Form: title (required), description (optional); "Save" and "Cancel". "Add item" button triggers form.  | ui-definition.MD §7.4   |
 | 3.5.2 | Call addItem API                | On submit, call `addItem`; show loading. Handle: empty title → inline validation; add fails → "Could not add item. Try again." with retry; preserve form data. Item appears immediately to all via WebSocket. | spec.MD §6.1, UC-6.1 |
-| 3.5.3 | Edit item (before voting)       | "Edit" on item card; same form; call `updateItem`. "Remove item" with confirmation; call `removeItem`. | spec.MD §6.1            |
+| 3.5.3 | Edit item (before reveal)       | "Edit" on item card; same form; call `updateItem`. Edit available during voting (before reveal). "Remove item" with confirmation; call `removeItem` (only when no votes cast). | spec.MD §6.1            |
 | 3.5.4 | Theme and responsive            | Use component system; touch targets ≥ 44 px; keyboard submit.                                          | ui-definition.MD §5, §6 |
 
 

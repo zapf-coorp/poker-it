@@ -166,6 +166,7 @@ So that estimation is officially completed
 ### Success Criteria
 - After closing, no further votes can be cast.
 - Session history remains available for viewing.
+- When room is closed (by facilitator or when viewing an already-closed room): a 5-second countdown is shown; user is redirected to the Create Room page; a global message displays: "The room [name] was closed at [HH:mm:ss]".
 
 ---
 
@@ -193,6 +194,20 @@ So that I can watch the session without voting
 - Observer sees the current estimation item and, after reveal, the votes and results.
 - Observer does not see votes before reveal and cannot cast a vote.
 - Observer appears in the participant list (or a separate observer list) so the facilitator knows who is present.
+
+---
+
+## User Story 5.6 — Global Messages
+
+As a user  
+I want to see feedback messages in a consistent place  
+So that I am informed of important events and can dismiss them  
+
+### Success Criteria
+- Messages are displayed in a global component visible on every page.
+- Multiple messages stack vertically; each has a close button on the right.
+- Messages are cleared when the user navigates to another route or page.
+- Messages support types: info, error, success (with distinct styling).
 
 ---
 
@@ -231,8 +246,8 @@ So that the team can estimate it
 
 ### Success Criteria
 - Item appears immediately to all participants.
-- Item can be edited before voting starts.
-- Item can be removed if necessary.
+- Item can be edited before voting starts and during voting (until votes are revealed).
+- Item can be removed if necessary (only when no votes have been cast).
 
 ---
 

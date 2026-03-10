@@ -111,15 +111,33 @@
   opacity: 0.95;
 }
 
-/* Player cards around the table */
+/* Player cards around the table — can extend outside the table */
 .room-lobby__player-cards {
   position: absolute;
-  inset: -8px;
+  inset: -100px;
   pointer-events: none;
 }
 
-.room-lobby__player-card {
+.room-lobby__player-card-wrap {
   position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.room-lobby__player-card-name {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.room-lobby__player-card {
   width: 40px;
   height: 54px;
   min-width: 40px;
@@ -141,6 +159,15 @@
 .room-lobby__player-card--voted {
   border-color: var(--color-primary);
   background: var(--color-surface);
+}
+
+/* Voted (before reveal): more contrast, thin marked border, slight tilt right, checkmark */
+.room-lobby__player-card--voted-confirm {
+  border-width: 1px;
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  box-shadow: 0 0 0 1px var(--color-primary);
+  transform: rotate(4deg);
 }
 
 .room-lobby__player-card--revealed-high {
