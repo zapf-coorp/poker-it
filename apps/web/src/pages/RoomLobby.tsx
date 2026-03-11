@@ -8,6 +8,14 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import type { Room, Participant, Item, VoteStatistics } from "shared";
 import { RoomState, ParticipantRole, RoundState } from "shared";
+
+/** Converts finalEstimate to number for summing (Fibonacci/Linear: parse; T-shirt: map). */
+function estimateToNumber(value: string): number | null {
+  const n = Number(value);
+  if (Number.isFinite(n)) return n;
+  const TSHIRT_TO_NUM: Record<string, number> = { XS: 1, S: 2, M: 3, L: 4, XL: 5 };
+  return TSHIRT_TO_NUM[value] ?? null;
+}
 import { roomApi } from "../api";
 import { getStoredParticipant, clearStoredParticipant } from "../storage";
 import { useRoomSocket } from "../hooks/useRoomSocket";
@@ -703,7 +711,35 @@ export function RoomLobby() {
             {statsContent}
             {items.filter((i) => i.finalEstimate).length > 0 ? (
               <>
-                <h3 style={{ marginTop: statsContent ? 16 : 0 }}>Estimated items</h3>
+                {(() => {
+                  const estimatedItems = items.filter(
+                    (i): i is Item & { finalEstimate: string } => !!i.finalEstimate
+                  );
+                  const total = estimatedItems.reduce((sum, i) => {
+                    const n = estimateToNumber(i.finalEstimate);
+                    return sum + (n ?? 0);
+                  }, 0);
+                  const hasAnyNumeric = estimatedItems.some(
+                    (i) => estimateToNumber(i.finalEstimate) !== null
+                  );
+                  return (
+                    <h3
+                      className="room-lobby__sidebar-estimated-header"
+                      style={{
+                        marginTop: statsContent ? 16 : 0,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <span>Estimated items</span>
+                      {hasAnyNumeric && (
+                        <span className="room-lobby__sidebar-estimate">{total}</span>
+                      )}
+                    </h3>
+                  );
+                })()}
                 <ul>
                   {items
                     .filter((i) => i.finalEstimate)
