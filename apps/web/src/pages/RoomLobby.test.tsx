@@ -21,6 +21,7 @@ import type { ItemWithRound } from "../types";
 
 const ROOM_ID = "room-123";
 const PARTICIPANT_ID = "participant-fac";
+const BOB_ID = "participant-bob";
 const ITEM_ID = "item-1";
 const ROUND_ID = "round-1";
 
@@ -41,6 +42,15 @@ const mockParticipants: Participant[] = [
     roomId: ROOM_ID,
     displayName: "Alice",
     role: ParticipantRole.FACILITATOR,
+    joinedAt: Date.now(),
+    leftAt: null,
+    isActive: true,
+  },
+  {
+    id: BOB_ID,
+    roomId: ROOM_ID,
+    displayName: "Bob",
+    role: ParticipantRole.PARTICIPANT,
     joinedAt: Date.now(),
     leftAt: null,
     isActive: true,
@@ -241,5 +251,61 @@ describe("RoomLobby", () => {
     });
 
     expect(screen.getByRole("button", { name: "Edit item" })).toBeInTheDocument();
+  });
+
+  it("shows check icon on player card for participant who has voted, visible to all users", async () => {
+    vi.mocked(roomApi.getItems).mockResolvedValue({
+      items: [
+        {
+          ...mockItemWithRound,
+          currentRound: {
+            ...mockItemWithRound.currentRound!,
+            votedCount: 1,
+            votedParticipantIds: [BOB_ID],
+          },
+        },
+      ],
+    });
+
+    render(<TestApp />);
+
+    await waitFor(() => {
+      expect(screen.getByText("User login")).toBeInTheDocument();
+    });
+
+    const bobWrap = Array.from(document.querySelectorAll(".room-lobby__player-card-wrap")).find(
+      (w) => w.querySelector(".room-lobby__player-card-name")?.textContent === "Bob"
+    );
+    const bobCard = bobWrap?.querySelector(".room-lobby__player-card");
+    expect(bobCard).toBeInTheDocument();
+    expect(bobCard).toHaveTextContent("✓");
+  });
+
+  it("shows question mark on player card when participant has not voted", async () => {
+    vi.mocked(roomApi.getItems).mockResolvedValue({
+      items: [
+        {
+          ...mockItemWithRound,
+          currentRound: {
+            ...mockItemWithRound.currentRound!,
+            votedCount: 0,
+            votedParticipantIds: [],
+          },
+        },
+      ],
+    });
+
+    render(<TestApp />);
+
+    await waitFor(() => {
+      expect(screen.getByText("User login")).toBeInTheDocument();
+    });
+
+    const bobWrap = Array.from(document.querySelectorAll(".room-lobby__player-card-wrap")).find(
+      (w) => w.querySelector(".room-lobby__player-card-name")?.textContent === "Bob"
+    );
+    const bobCard = bobWrap?.querySelector(".room-lobby__player-card");
+    expect(bobCard).toBeInTheDocument();
+    expect(bobCard).toHaveTextContent("?");
   });
 });

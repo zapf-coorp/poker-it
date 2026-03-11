@@ -73,14 +73,24 @@ export function useRoomSocket(
         return prev;
       });
     });
-    s.on("voteCount", (payload: { itemId: string; votedCount: number }) => {
-      setItems((prev) =>
-        prev.map((i) => {
-          if (i.id !== payload.itemId || !i.currentRound) return i;
-          return { ...i, currentRound: { ...i.currentRound, votedCount: payload.votedCount } };
-        })
-      );
-    });
+    s.on(
+      "voteCount",
+      (payload: { itemId: string; votedCount: number; votedParticipantIds?: string[] }) => {
+        setItems((prev) =>
+          prev.map((i) => {
+            if (i.id !== payload.itemId || !i.currentRound) return i;
+            return {
+              ...i,
+              currentRound: {
+                ...i.currentRound,
+                votedCount: payload.votedCount,
+                votedParticipantIds: payload.votedParticipantIds ?? i.currentRound.votedParticipantIds,
+              },
+            };
+          })
+        );
+      }
+    );
     s.on(
       "votesRevealed",
       (payload: {

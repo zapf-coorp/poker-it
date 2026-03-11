@@ -185,6 +185,7 @@ describe("Phase 3 — Estimation API", () => {
       const itemsRes = await request(app).get(`/api/rooms/${roomId}/items`);
       const item = itemsRes.body.items.find((i: { id: string }) => i.id === itemId);
       expect(item.currentRound.votedCount).toBe(1);
+      expect(item.currentRound.votedParticipantIds).toContain(participantId);
     });
 
     it("allows facilitator to vote", async () => {

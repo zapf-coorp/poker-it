@@ -7,6 +7,8 @@ export interface ItemWithRound extends Item {
     state: RoundState;
     roundNumber: number;
     votedCount: number;
+    /** Participant IDs who have voted (for showing ✓/?, visible to all). Values remain secret until reveal. */
+    votedParticipantIds?: string[];
   };
 }
 

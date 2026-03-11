@@ -101,6 +101,7 @@ export function RoomLobby() {
     return map;
   }, [revealedVotes]);
 
+  const votedParticipantIds = currentRound?.votedParticipantIds ?? [];
   const highest = revealedStats?.highest ?? "";
   const lowest = revealedStats?.lowest ?? "";
 
@@ -521,7 +522,7 @@ export function RoomLobby() {
       <div className="room-lobby__body">
         <main className="room-lobby__main">
           {/* Desk/table with player cards around it */}
-          <div className="room-lobby__table" style={{ position: "relative" }}>
+          <div className="room-lobby__table" style={{ position: "relative", marginBottom: "120px" }}>
             {/* Player cards around the table */}
             {currentItem && voters.length > 0 && (
               <div className="room-lobby__player-cards">
@@ -530,7 +531,7 @@ export function RoomLobby() {
                   const vote = voteByParticipant.get(p.id);
                   const isHigh = isRevealed && vote && vote.cardValue === highest;
                   const isLow = isRevealed && vote && vote.cardValue === lowest;
-                  const hasVoted = p.id === participantId && myVote !== null;
+                  const hasVoted = votedParticipantIds.includes(p.id);
                   const displayValue = isRevealed && vote
                     ? vote.cardValue
                     : isVoting

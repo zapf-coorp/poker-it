@@ -28,6 +28,7 @@ import {
   getRoundById,
   getVotesByRound,
   getVoteCountForRound,
+  getVotedParticipantIdsForRound,
   getVotingParticipantCount,
   rooms,
   participants,
@@ -222,6 +223,7 @@ app.get("/api/rooms/:id/items", (req, res) => {
           state: round.state,
           roundNumber: round.roundNumber,
           votedCount: getVoteCountForRound(round.id),
+          votedParticipantIds: getVotedParticipantIdsForRound(round.id),
         }
       : null;
     return { ...item, currentRound };
@@ -312,8 +314,15 @@ app.post("/api/rooms/:id/items/:itemId/vote", (req, res) => {
     if (roundId) {
       const votedCount = getVoteCountForRound(roundId);
       const totalCount = getVotingParticipantCount(roomId);
+      const votedParticipantIds = getVotedParticipantIdsForRound(roundId);
       const io = (app as unknown as { io?: SocketIOServer }).io;
-      if (io) io.to(roomId).emit("voteCount", { itemId, votedCount, totalCount });
+      if (io)
+        io.to(roomId).emit("voteCount", {
+          itemId,
+          votedCount,
+          totalCount,
+          votedParticipantIds,
+        });
     }
     res.status(200).json({ success: true });
   } catch (err) {
@@ -338,8 +347,15 @@ app.delete("/api/rooms/:id/items/:itemId/vote", (req, res) => {
     if (roundId) {
       const votedCount = getVoteCountForRound(roundId);
       const totalCount = getVotingParticipantCount(roomId);
+      const votedParticipantIds = getVotedParticipantIdsForRound(roundId);
       const io = (app as unknown as { io?: SocketIOServer }).io;
-      if (io) io.to(roomId).emit("voteCount", { itemId, votedCount, totalCount });
+      if (io)
+        io.to(roomId).emit("voteCount", {
+          itemId,
+          votedCount,
+          totalCount,
+          votedParticipantIds,
+        });
     }
     res.status(200).json({ success: true });
   } catch (err) {

@@ -560,6 +560,11 @@ export function getVoteCountForRound(roundId: string): number {
   return getVotesByRound(roundId).length;
 }
 
+/** Participant IDs who have voted in this round (for ✓/? display, values stay secret until reveal). */
+export function getVotedParticipantIdsForRound(roundId: string): string[] {
+  return getVotesByRound(roundId).map((v) => v.participantId);
+}
+
 export function getVotingParticipantCount(roomId: string): number {
   return getActiveParticipants(roomId).filter(
     (p) => p.role === ParticipantRole.PARTICIPANT || p.role === ParticipantRole.FACILITATOR
