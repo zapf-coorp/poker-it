@@ -16,6 +16,8 @@
     "build": "npm run build -w shared && npm run build -w web -w mobile -w server",
     "typecheck": "npm run typecheck -w shared",
     "test": "npm run test -w shared && npm run test -w server && npm run test -w web",
+    "test:watch": "concurrently -n shared,server,web -c cyan,green,blue \"npm run test:watch -w shared\" \"npm run test:watch -w server\" \"npm run test:watch -w web\"",
+    "test:coverage": "npm run test:coverage -w shared && npm run test:coverage -w server && npm run test:coverage -w web",
     "shared:build": "npm run build -w shared",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
