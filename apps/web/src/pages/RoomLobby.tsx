@@ -45,8 +45,6 @@ export function RoomLobby() {
   const stored = id ? getStoredParticipant(id) : null;
   const participantId =
     (location.state as { participantId?: string })?.participantId ?? stored?.participantId;
-  const isFacilitator =
-    (location.state as { isFacilitator?: boolean })?.isFacilitator ?? stored?.isFacilitator ?? false;
 
   const [room, setRoom] = useState<Room | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -69,6 +67,12 @@ export function RoomLobby() {
   const [revealedStats, setRevealedStats] = useState<VoteStatistics | null>(null);
   const [revealedItemId, setRevealedItemId] = useState<string | null>(null);
   const [deckDescriptions, setDeckDescriptions] = useState<Record<string, string>>({});
+
+  // Room is source of truth: facilitatorId identifies the host until the room exists
+  const isFacilitator =
+    room != null
+      ? room.facilitatorId === participantId
+      : ((location.state as { isFacilitator?: boolean })?.isFacilitator ?? stored?.isFacilitator ?? false);
 
   const [myVote, setMyVote] = useState<string | null>(null);
   const [finalEstimate, setFinalEstimate] = useState<string>("");
@@ -162,7 +166,22 @@ export function RoomLobby() {
     setRevealedStats(null);
     setRevealedItemId(null);
     setFinalEstimate("");
-  }, [currentItem?.id]);
+
+    // Restore own vote after refresh when current item is in VOTING state
+    if (
+      currentItem &&
+      currentItem.currentRound?.state === RoundState.VOTING &&
+      id &&
+      participantId
+    ) {
+      roomApi
+        .getMyVote(id, currentItem.id, participantId)
+        .then(({ cardValue }) => {
+          if (cardValue) setMyVote(cardValue);
+        })
+        .catch(() => {});
+    }
+  }, [currentItem?.id, currentItem?.currentRound?.state, id, participantId]);
 
   useRoomSocket(id, participantId ?? undefined, room, {
     setParticipants,
@@ -482,6 +501,18 @@ export function RoomLobby() {
                     <Button variant="secondary" onClick={() => setLeaveConfirm(true)}>
                       Leave
                     </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={copyShareLink}
+                      style={{
+                        fontSize: "0.9rem",
+                        background: "var(--color-share-link)",
+                        color: "#fff",
+                        border: "2px solid var(--color-share-link)",
+                      }}
+                    >
+                      {linkCopied ? "Copied!" : "Copy share link"}
+                    </Button>
                   </>
                 )
               ) : (
@@ -493,14 +524,6 @@ export function RoomLobby() {
           )}
         </div>
       </header>
-
-      {isFacilitator && !isClosed && (
-        <div style={{ flexShrink: 0 }}>
-          <Button variant="secondary" onClick={copyShareLink} style={{ fontSize: "0.9rem" }}>
-            {linkCopied ? "Copied!" : "Copy share link"}
-          </Button>
-        </div>
-      )}
 
       {error && (
         <p style={{ color: "var(--color-error)", margin: 0 }}>{error}</p>

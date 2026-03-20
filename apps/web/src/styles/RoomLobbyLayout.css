@@ -7,7 +7,8 @@
 .room-lobby {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: calc(100vh - 60px);
+  max-height: calc(100vh - 60px);
   padding: 16px;
   gap: 16px;
 }
@@ -40,6 +41,7 @@
   flex: 1;
   gap: 16px;
   min-height: 0;
+  overflow-y: auto;
 }
 
 /* Center: table area */
@@ -256,7 +258,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  max-width: 600px;
+  max-width: 80vw;
   margin: 0 auto;
 }
 

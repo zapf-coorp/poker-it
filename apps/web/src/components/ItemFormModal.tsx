@@ -35,36 +35,49 @@ export function ItemFormModal({
   onCancel,
   isLoading,
 }: ItemFormModalProps) {
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    onSubmit();
+  }
+
   return (
     <Modal onClose={onCancel}>
-      <h2 style={{ margin: "0 0 16px" }}>{title}</h2>
-      <Input
-        label="Title"
-        value={itemTitle}
-        onChange={(e) => onTitleChange(e.target.value)}
-        placeholder="Item title"
-        error={error}
-      />
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", marginBottom: 4, fontSize: "0.9rem" }}>
-          Description (optional)
-        </label>
-        <textarea
-          value={itemDesc}
-          onChange={(e) => onDescChange(e.target.value)}
-          placeholder="Description"
-          rows={3}
-          style={textareaStyles}
+      <form onSubmit={handleSubmit}>
+        <h2 style={{ margin: "0 0 16px" }}>{title}</h2>
+        <Input
+          label="Title"
+          value={itemTitle}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="Item title"
+          error={error}
         />
-      </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <Button variant="primary" onClick={onSubmit} loading={isLoading}>
-          Save
-        </Button>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", marginBottom: 4, fontSize: "0.9rem" }}>
+            Description (optional)
+          </label>
+          <textarea
+            value={itemDesc}
+            onChange={(e) => onDescChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                onSubmit();
+              }
+            }}
+            placeholder="Description"
+            rows={3}
+            style={textareaStyles}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button variant="primary" type="submit" loading={isLoading}>
+            Save
+          </Button>
+          <Button variant="secondary" type="button" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

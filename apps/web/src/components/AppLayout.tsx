@@ -9,7 +9,8 @@ const headerStyles: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "16px 24px",
+  padding: "8px 24px",
+  height: "60px",
   borderBottom: "1px solid var(--color-border)",
   background: "var(--color-surface)",
 };

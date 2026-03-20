@@ -91,6 +91,7 @@ vi.mock("../api", () => ({
     removeItem: vi.fn(),
     castVote: vi.fn(),
     removeVote: vi.fn(),
+    getMyVote: vi.fn().mockResolvedValue({ cardValue: null }),
     revealVotes: vi.fn(),
     revote: vi.fn(),
     recordFinalEstimate: vi.fn(),
@@ -307,5 +308,37 @@ describe("RoomLobby", () => {
     const bobCard = bobWrap?.querySelector(".room-lobby__player-card");
     expect(bobCard).toBeInTheDocument();
     expect(bobCard).toHaveTextContent("?");
+  });
+
+  it("restores voted card after refresh when getMyVote returns cardValue", async () => {
+    vi.mocked(roomApi.getMyVote).mockResolvedValue({ cardValue: "5" });
+
+    render(<TestApp />);
+
+    await waitFor(() => {
+      expect(roomApi.getMyVote).toHaveBeenCalledWith(ROOM_ID, ITEM_ID, PARTICIPANT_ID);
+    });
+
+    await waitFor(() => {
+      const card5 = screen.getByRole("button", { name: "5" });
+      expect(card5).toHaveClass("room-lobby__deck-card--selected");
+    });
+  });
+
+  it("shows facilitator UI when room.facilitatorId matches participantId even if storage has isFacilitator false (refresh scenario)", async () => {
+    vi.mocked(getStoredParticipant).mockReturnValue({
+      participantId: PARTICIPANT_ID,
+      isFacilitator: false,
+    });
+    vi.mocked(roomApi.getRoom).mockResolvedValue({ ...mockRoom, facilitatorId: PARTICIPANT_ID });
+
+    render(<TestApp />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Sprint 42")).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("button", { name: "Close room" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit item" })).toBeInTheDocument();
   });
 });
