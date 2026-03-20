@@ -88,6 +88,7 @@ The palette is inspired by **poker and casino aesthetics**: green felt tables, g
 | **Card red** | `#b91c1c` | Destructive actions; error; card-suit accent. |
 | **Card red light** | `#dc2626` | Red on dark backgrounds. |
 | **Card black** | `#1a1a1a` | Text, borders; card-suit accent. |
+| **Share link blue** | `#1e40af` | Copy share link button (casino-style bluish accent). Light: `#1e40af`; dark: `#3b82f6`. |
 | **Cream** | `#f5f0e8` | Light mode background (warm off-white). |
 | **Cream surface** | `#faf8f5` | Light mode cards (slightly lighter). |
 | **Dark felt** | `#0d2d0d` | Dark mode background (deep green-black). |
@@ -111,6 +112,7 @@ Two themes are **required**: **Clear (light)** and **Dark**.
 | **Secondary accent** | `#c9a227` (gold) | `#e6c04a` (gold light) |
 | **Success** | `#0d6b0d` or `#16a34a` | `#1a8c1a` |
 | **Error / destructive** | `#b91c1c` (card red) | `#dc2626` (card red light) |
+| **Share link (copy button)** | `#1e40af` (share link blue) | `#3b82f6` |
 | **Focus ring** | `2px solid #0d6b0d` | `2px solid #1a8c1a` |
 
 - **Contrast:** All text and interactive elements meet WCAG 2.1 AA in both themes.
@@ -201,7 +203,7 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 
 **Layout (mobile):**
 
-- **Header:** Room name; badge (Open/Closed); [Menu] or [Leave] for participant, [Close room] for facilitator (in menu or header).
+- **Header:** Room name; badge (Open/Closed); [Menu] or [Leave] for participant, [Close room] [Leave] [Copy share link] for facilitator. Copy share link button to the right of Leave; bluish casino-style color (`--color-share-link`).
 - **Section 1 — Current item:** Card with title and description; if no item: “No item yet” and (facilitator only) “Add item”.
 - **Section 2 — Participants:** Horizontal scroll or list of avatars/names; “N participants” or “N voted” during voting (no values). Observers listed separately or with “(observer)”.
 - **Section 3 (participant) — Voting:** Deck of cards (values from room deck); user taps to vote; selected card visually distinct; “Change vote” possible until reveal. If observer: message “You are observing; no vote.”
@@ -225,6 +227,7 @@ Screens are derived from `spec.MD` user stories. For each: **purpose**, **who se
 - **Layout:** Modal or inline form. Title “Add item” / “Edit item”; fields: “Title” (required), “Description” (optional); “Save” and “Cancel”. If edit: “Remove item” (destructive, with confirmation; only when no votes cast).
 - **Elements:** Text input title; textarea description; primary “Save”; secondary “Cancel”; destructive “Remove item” (edit only).
 - **States:** Empty; validation error; loading; success (close and refresh list).
+- **Keyboard:** Enter to submit (save); Shift+Enter in description adds newline.
 - **Responsive:** On mobile, modal or full-screen overlay with safe padding. Touch-friendly.
 
 ---

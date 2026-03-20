@@ -181,6 +181,7 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 | 2.3.3 | Emit room closed | When facilitator closes room, broadcast `roomClosed` with session summary. TEST-2.3 must pass. | spec.MD §5.3 |
 | 2.3.4 | Handle disconnect | On socket disconnect, mark participant `isActive=false`, `leftAt=now`; broadcast `participantLeft`. TEST-2.3 must pass. | spec.MD §5.4, NFRs |
 | 2.3.5 | Room state on reconnect | When client reconnects, return current room state (open/closed). If closed, include summary. TEST-2.3 must pass. | spec.MD §15.7 |
+| 2.3.6 | Rejoin on reconnect | When WebSocket `joinRoom` received for inactive participant (e.g. after refresh), reactivate participant; emit `participantJoined`; join socket to room *before* emitting so reconnecting user receives event. | spec.MD §12, §15.7 |
 
 ---
 
@@ -235,7 +236,7 @@ These tasks implement **Room Management** (User Stories 5.1–5.5) per `configur
 | 2.7.5 | Handle room closed event (dead-end prevention) | On WebSocket `roomClosed`: immediately disable voting; show "This session has ended."; display session summary; show 5-second countdown with "Go now" button; redirect to Create Room page; display global message. No user left in active voting view. TEST-2.7 must pass. | spec.MD §5.3, §5.6 |
 | 2.7.6 | Room closed — polling fallback | If WebSocket unavailable: poll `GET /api/rooms/:id` periodically; when `state=CLOSED`, show same summary + exit options. TEST-2.7 must pass. | spec.MD §15.3 |
 | 2.7.7 | Room closed — on page refresh | On load/reconnect: fetch room state; if closed, show summary view directly (not voting view). Never show stale "voting in progress" for closed room. TEST-2.7 must pass. | spec.MD §15.7 |
-| 2.7.8 | Role-based UI | Facilitator sees "Close room"; participant/observer see "Leave". Observer sees same layout but no vote controls. TEST-2.7 must pass. | spec.MD §5.3–5.5 |
+| 2.7.8 | Role-based UI | Facilitator sees "Close room"; participant/observer see "Leave". Observer sees same layout but no vote controls. Facilitator identity derived from `room.facilitatorId` (source of truth) so host privileges persist after refresh. TEST-2.7 must pass. | spec.MD §5.3–5.5 |
 | 2.7.9 | Global messages component | Message component on every page; messages stack vertically; each has close button; messages clear on navigation. Support types: info, error, success. TEST-2.7 must pass. | spec.MD §5.6 |
 
 ---
@@ -315,6 +316,7 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 | 3.2.4 | `POST /api/rooms/:id/items/:itemId/vote` — Cast vote | Accept `{ participantId, cardValue }`; validate cardValue in deckValues; create or update vote. Participant or facilitator (not observer). TEST-3.2.4 must pass. | spec.MD §6.2 |
 | TEST-3.2.4b | **[TEST FIRST]** Write supertest tests for `DELETE /api/rooms/:id/items/:itemId/vote` | Tests: valid deselect → 200; no existing vote → 404; after reveal → 400. | spec.MD §6.2 |
 | 3.2.4b | `DELETE /api/rooms/:id/items/:itemId/vote` — Remove vote (deselect) | Accept `{ participantId }`; remove participant's vote for current round. Only before reveal. TEST-3.2.4b must pass. | spec.MD §6.2 |
+| 3.2.4c | `GET /api/rooms/:id/items/:itemId/vote?participantId=xxx` — Get own vote | Return `{ cardValue: string \| null }` for participant's vote in current round (VOTING state only). Used to restore vote on reconnect. | spec.MD §15.7 |
 | TEST-3.2.5 | **[TEST FIRST]** Write supertest tests for `POST /api/rooms/:id/items/:itemId/reveal` | Tests: valid reveal → 200 with votes + statistics (average, median, suggestedEstimate, voteDistribution); non-facilitator → 403; already revealed → 400. | spec.MD §6.3, §6.6 |
 | 3.2.5 | `POST /api/rooms/:id/items/:itemId/reveal` — Reveal votes | Set round state to REVEALED; set votesRevealedAt. Return votes + statistics. Facilitator only. TEST-3.2.5 must pass. | spec.MD §6.3, §6.6 |
 | TEST-3.2.6 | **[TEST FIRST]** Write supertest tests for `POST /api/rooms/:id/items/:itemId/revote` | Tests: valid revote → 201 with new round; non-facilitator → 403; previous round preserved in history. | spec.MD §6.4 |
@@ -346,6 +348,7 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 | 3.4.3 | Add `removeItem(roomId, itemId)` | HTTP DELETE to `/api/rooms/:id/items/:itemId`. TEST-3.4 must pass. | quickstart.MD §5 |
 | 3.4.4 | Add `castVote(roomId, itemId, participantId, cardValue)` | HTTP POST to `/api/rooms/:id/items/:itemId/vote`. TEST-3.4 must pass. | quickstart.MD §5 |
 | 3.4.4b | Add `removeVote(roomId, itemId, participantId)` | HTTP DELETE to `/api/rooms/:id/items/:itemId/vote`. TEST-3.4 must pass. | spec.MD §6.2 |
+| 3.4.4c | Add `getMyVote(roomId, itemId, participantId)` | HTTP GET to `/api/rooms/:id/items/:itemId/vote?participantId=xxx`; return `{ cardValue: string \| null }`. Used to restore vote on reconnect. | spec.MD §15.7 |
 | 3.4.5 | Add `revealVotes(roomId, itemId, participantId)` | HTTP POST to `/api/rooms/:id/items/:itemId/reveal`; return votes + statistics. TEST-3.4 must pass. | quickstart.MD §5 |
 | 3.4.6 | Add `revote(roomId, itemId, participantId)` | HTTP POST to `/api/rooms/:id/items/:itemId/revote`. TEST-3.4 must pass. | quickstart.MD §5 |
 | 3.4.7 | Add `recordFinalEstimate(roomId, itemId, participantId, cardValue)` | HTTP POST to `/api/rooms/:id/items/:itemId/finalize`. TEST-3.4 must pass. | quickstart.MD §5 |
@@ -361,7 +364,7 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 | 3.5.1 | Add item form (modal or inline) | Form: title (required), description (optional); "Save" and "Cancel". "Add item" button triggers form. TEST-3.5 must pass. | ui-definition.MD §7.4 |
 | 3.5.2 | Call addItem API | On submit, call `addItem`; show loading. Handle: empty title → inline validation; add fails → "Could not add item. Try again." with retry; preserve form data. Item appears immediately to all via WebSocket. TEST-3.5 must pass. | spec.MD §6.1 |
 | 3.5.3 | Edit item (before reveal) | "Edit" on item card; same form; call `updateItem`. Edit available during voting (before reveal). "Remove item" with confirmation; call `removeItem`. TEST-3.5 must pass. | spec.MD §6.1 |
-| 3.5.4 | Theme and responsive | Use component system; touch targets ≥ 44 px; keyboard submit. | ui-definition.MD §5, §6 |
+| 3.5.4 | Theme and responsive | Use component system; touch targets ≥ 44 px; keyboard submit (Enter to save; Shift+Enter in description adds newline). | ui-definition.MD §5, §6 |
 
 ---
 
@@ -374,7 +377,7 @@ These tasks implement **Estimation Process** (User Stories 6.0–6.6) per `confi
 | 3.6.2 | Cast vote, change, deselect | Call `castVote` on selection; call `removeVote` when tapping selected card again. Allow select, deselect, change until reveal. After reveal: no voting controls; votes read-only. Facilitator sees same deck and can vote. Vote fail → brief message + retry. TEST-3.6 must pass. | spec.MD §6.2 |
 | 3.6.3 | Vote count feedback | Show "X of Y have voted" (no values). Update via WebSocket `voteCount`. TEST-3.6 must pass. | spec.MD §6.2 |
 | 3.6.4 | No current item state | When no item yet: show "Waiting for facilitator to add an item." No voting controls. No dead end. TEST-3.6 must pass. | spec.MD §15.4 |
-| 3.6.5 | Connection lost during vote | On reconnect: if vote was lost, show "Reconnected. Please submit your vote again if needed." Allow easy re-vote. TEST-3.6 must pass. | spec.MD §15.2, §15.7 |
+| 3.6.5 | Connection lost during vote | On reconnect: restore vote via `getMyVote`; selected card in deck reflects restored vote. If vote was lost, show "Reconnected. Please submit your vote again if needed." Allow easy re-vote. TEST-3.6 must pass. | spec.MD §15.2, §15.7 |
 | 3.6.6 | Observer state | Observer sees "You are observing; no vote." No card deck. TEST-3.6 must pass. | spec.MD §5.5 |
 | 3.6.7 | Keyboard and accessibility | Cards focusable; Enter/Space to select; logical Tab order. | ui-definition.MD §4.2 |
 

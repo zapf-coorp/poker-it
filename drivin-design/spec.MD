@@ -424,7 +424,7 @@ Optional for MVP (include if low effort): Join as observer. Account management (
 # 12. Non-Functional Requirements
 
 - **Browser support:** Usable in the latest two major versions of Chrome, Firefox, Safari, and Edge (desktop). Mobile browser support is desirable but may be limited in MVP.
-- **Reconnection:** If a participant refreshes or loses connection, they can rejoin the same room with the same display name; their previous vote in the current round may be cleared (implementation choice). Session and room state should recover where feasible.
+- **Reconnection:** If a participant refreshes or loses connection, they can rejoin the same room with the same display name. Their previous vote in the current round is restored when possible (via `GET /api/rooms/:id/items/:itemId/vote`). Host and facilitator privileges persist (derived from `room.facilitatorId`). Session and room state recover where feasible.
 - **Performance:** Room and vote updates should appear to all participants within a few seconds; no hard SLA for MVP.
 - **Accessibility:** Basic keyboard navigation and readable contrast so the app is usable without mouse-only interaction. Screen-reader support is a goal for post-MVP.
 
@@ -896,8 +896,8 @@ This section provides fully detailed use cases for all functional flows, with em
 **Alternative Flow — Connection Lost During Vote (3a)**
 
 3a. User's connection drops after selecting but before confirm.
-3a1. On reconnect, user may need to vote again (vote may not have been persisted).
-3a2. System shows "Reconnected. Please submit your vote again if needed." if vote was lost.
+3a1. On reconnect, system restores the user's vote when possible (via `GET /api/rooms/:id/items/:itemId/vote`); selected card in deck reflects the restored vote.
+3a2. If vote was lost, system shows "Reconnected. Please submit your vote again if needed." and allows easy re-vote.
 
 **Error Handling**
 
@@ -1098,7 +1098,7 @@ This section provides fully detailed use cases for all functional flows, with em
 1. User reconnects (refresh, network restore, tab focus).
 2. Client attempts to rejoin with same display name and room ID.
 3. System validates: room exists, name available (or same user rejoining).
-4. If room is open: User re-enters room. Current item, participant list, and voting state are restored. User may need to re-submit vote if it was lost.
+4. If room is open: User re-enters room. Current item, participant list, and voting state are restored. User's own vote (if any) is restored via `GET /api/rooms/:id/items/:itemId/vote`; selected card in deck reflects the restored vote.
 5. If room is closed: User sees "Session ended" and summary. Clear exit options.
 6. System never shows stale "voting in progress" for a closed room.
 
