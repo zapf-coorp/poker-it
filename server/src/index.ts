@@ -13,6 +13,7 @@ import {
   createRoom,
   joinRoom,
   leaveRoom,
+  reactivateParticipant,
   closeRoom,
   getRoom,
   getActiveParticipants,
@@ -29,6 +30,7 @@ import {
   getVotesByRound,
   getVoteCountForRound,
   getVotedParticipantIdsForRound,
+  getVoteByParticipantAndRound,
   getVotingParticipantCount,
   rooms,
   participants,
@@ -36,6 +38,7 @@ import {
 import {
   DeckType,
   RoomState,
+  RoundState,
   ParticipantRole,
 } from "shared";
 
@@ -295,6 +298,33 @@ app.delete("/api/rooms/:id/items/:itemId", (req, res) => {
   }
 });
 
+// GET /api/rooms/:id/items/:itemId/vote — Get own vote (for restoring after refresh)
+app.get("/api/rooms/:id/items/:itemId/vote", (req, res) => {
+  const { id: roomId, itemId } = req.params;
+  const participantId = req.query.participantId as string | undefined;
+  if (!participantId || typeof participantId !== "string") {
+    res.status(400).json({ error: "participantId query is required" });
+    return;
+  }
+  const room = getRoom(roomId);
+  if (!room) {
+    res.status(404).json({ error: "Room not found" });
+    return;
+  }
+  const item = getItemsByRoom(roomId).find((i) => i.id === itemId);
+  if (!item || item.roomId !== roomId) {
+    res.status(404).json({ error: "Item not found" });
+    return;
+  }
+  const round = item.currentRoundId ? getRoundById(item.currentRoundId) : null;
+  if (!round || round.state !== RoundState.VOTING) {
+    res.status(200).json({ cardValue: null });
+    return;
+  }
+  const vote = getVoteByParticipantAndRound(round.id, participantId);
+  res.status(200).json({ cardValue: vote?.cardValue ?? null });
+});
+
 // POST /api/rooms/:id/items/:itemId/vote — Cast vote
 app.post("/api/rooms/:id/items/:itemId/vote", (req, res) => {
   try {
@@ -472,10 +502,17 @@ io.on("connection", (socket) => {
     const room = getRoom(roomId);
     if (!room) return;
     const participant = participants.get(participantId);
-    if (!participant || participant.roomId !== roomId || !participant.isActive) return;
+    if (!participant || participant.roomId !== roomId) return;
 
+    // Join room first so reconnecting user receives participantJoined
     socket.join(roomId);
     socketSessions.set(socket.id, { roomId, participantId });
+
+    // Participant was marked inactive by disconnect (e.g. page refresh) — reactivate on reconnect
+    if (!participant.isActive) {
+      reactivateParticipant(roomId, participantId);
+      io.to(roomId).emit("participantJoined", participant);
+    }
   });
 
   socket.on("disconnect", () => {

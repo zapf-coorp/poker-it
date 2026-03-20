@@ -184,6 +184,19 @@ export function leaveRoom(roomId: string, participantId: string): void {
   participant.leftAt = now;
 }
 
+/**
+ * Reactivate a participant who reconnected (e.g. after page refresh).
+ * Used when WebSocket joinRoom is received for a participant who was marked inactive by disconnect.
+ */
+export function reactivateParticipant(roomId: string, participantId: string): void {
+  const participant = participants.get(participantId);
+  if (!participant || participant.roomId !== roomId) {
+    throw new Error("Participant not found");
+  }
+  participant.isActive = true;
+  participant.leftAt = null;
+}
+
 export function closeRoom(roomId: string, participantId: string): void {
   const room = rooms.get(roomId);
   if (!room) {
@@ -563,6 +576,16 @@ export function getVoteCountForRound(roundId: string): number {
 /** Participant IDs who have voted in this round (for ✓/? display, values stay secret until reveal). */
 export function getVotedParticipantIdsForRound(roundId: string): string[] {
   return getVotesByRound(roundId).map((v) => v.participantId);
+}
+
+/** Get a participant's vote for a round (for restoring own vote on reconnect). */
+export function getVoteByParticipantAndRound(
+  roundId: string,
+  participantId: string
+): Vote | undefined {
+  return getVotesByRound(roundId).find(
+    (v) => v.participantId === participantId
+  );
 }
 
 export function getVotingParticipantCount(roomId: string): number {

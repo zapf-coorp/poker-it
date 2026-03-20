@@ -122,6 +122,16 @@ export function createRoomApi(baseUrl: string, options?: HttpClientOptions) {
       });
     },
 
+    async getMyVote(
+      roomId: string,
+      itemId: string,
+      participantId: string
+    ): Promise<{ cardValue: string | null }> {
+      return http.get<{ cardValue: string | null }>(
+        `/api/rooms/${roomId}/items/${itemId}/vote?participantId=${encodeURIComponent(participantId)}`
+      );
+    },
+
     async revealVotes(
       roomId: string,
       itemId: string,

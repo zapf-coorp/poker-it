@@ -119,6 +119,38 @@ describe("Phase 3 — Estimation API client", () => {
     });
   });
 
+  describe("3.4.4c getMyVote", () => {
+    it("GETs /api/rooms/:id/items/:itemId/vote?participantId=xxx and returns cardValue", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ cardValue: "5" }),
+      });
+      vi.stubGlobal("fetch", mockFetch);
+
+      const api = createRoomApi(baseUrl);
+      const result = await api.getMyVote("room-1", "item-1", "participant-1");
+
+      expect(result.cardValue).toBe("5");
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${baseUrl}/api/rooms/room-1/items/item-1/vote?participantId=participant-1`,
+        expect.any(Object)
+      );
+    });
+
+    it("returns cardValue null when no vote", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ cardValue: null }),
+      });
+      vi.stubGlobal("fetch", mockFetch);
+
+      const api = createRoomApi(baseUrl);
+      const result = await api.getMyVote("room-1", "item-1", "participant-1");
+
+      expect(result.cardValue).toBeNull();
+    });
+  });
+
   describe("3.4.5 revealVotes", () => {
     it("POSTs to /api/rooms/:id/items/:itemId/reveal, returns votes and statistics", async () => {
       const mockResponse = {

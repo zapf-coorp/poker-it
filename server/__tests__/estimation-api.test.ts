@@ -242,6 +242,52 @@ describe("Phase 3 — Estimation API", () => {
     });
   });
 
+  describe("3.2.4c GET /api/rooms/:id/items/:itemId/vote — Get own vote (restore after refresh)", () => {
+    it("returns cardValue when participant has voted", async () => {
+      const { roomId, facilitatorId, itemId } = await createRoomWithItem();
+
+      await request(app)
+        .post(`/api/rooms/${roomId}/items/${itemId}/vote`)
+        .send({ participantId: facilitatorId, cardValue: "8" })
+        .expect(200);
+
+      const res = await request(app)
+        .get(`/api/rooms/${roomId}/items/${itemId}/vote`)
+        .query({ participantId: facilitatorId })
+        .expect(200);
+
+      expect(res.body).toEqual({ cardValue: "8" });
+    });
+
+    it("returns cardValue null when participant has not voted", async () => {
+      const { roomId, facilitatorId, itemId } = await createRoomWithItem();
+
+      const res = await request(app)
+        .get(`/api/rooms/${roomId}/items/${itemId}/vote`)
+        .query({ participantId: facilitatorId })
+        .expect(200);
+
+      expect(res.body).toEqual({ cardValue: null });
+    });
+
+    it("returns 400 when participantId is missing", async () => {
+      const { roomId, itemId } = await createRoomWithItem();
+
+      await request(app)
+        .get(`/api/rooms/${roomId}/items/${itemId}/vote`)
+        .expect(400);
+    });
+
+    it("returns 404 when room or item not found", async () => {
+      const { roomId, facilitatorId } = await createRoomWithItem();
+
+      await request(app)
+        .get(`/api/rooms/${roomId}/items/non-existent-item/vote`)
+        .query({ participantId: facilitatorId })
+        .expect(404);
+    });
+  });
+
   describe("3.2.5 POST /api/rooms/:id/items/:itemId/reveal — Reveal votes", () => {
     it("sets round to REVEALED, returns votes and statistics", async () => {
       const { roomId, facilitatorId, itemId } = await createRoomWithItem();
